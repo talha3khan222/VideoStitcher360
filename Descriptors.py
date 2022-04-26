@@ -11,7 +11,7 @@ class Descriptor_ORB:
         # compute the descriptors with ORB
         kp, des = self.detector.compute(image, kp)
 
-        return kp
+        return kp, des
 
 
 class Descriptor_FAST:
@@ -26,7 +26,7 @@ class Descriptor_FAST:
         # compute the descriptors with BRIEF
         kp, des = self.extractor.compute(image, kp)
 
-        return kp
+        return kp, des
 
 
 class Descriptor_SURF:
@@ -37,5 +37,15 @@ class Descriptor_SURF:
         # Find keypoints and descriptors directly
         kp, des = self.detector.detectAndCompute(image, None)
 
-        return kp
+        return kp, des
 
+
+class Descriptor_SIFT:
+    def __init__(self):
+        self.detector = cv2.SIFT_create()
+
+    def compute_features(self, image):
+        # Find keypoints and descriptors directly
+        kp, des = self.detector.detectAndCompute(image, None)
+
+        return kp, des
