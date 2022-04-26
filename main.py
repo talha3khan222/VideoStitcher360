@@ -1,16 +1,18 @@
-# This is a sample Python script.
+import cv2
 
-# Press Shift+F10 to execute it or replace it with your code.
-# Press Double Shift to search everywhere for classes, files, tool windows, actions, and settings.
-
-
-def print_hi(name):
-    # Use a breakpoint in the code line below to debug your script.
-    print(f'Hi, {name}')  # Press Ctrl+F8 to toggle the breakpoint.
+from FeatureExtractor import FeatureExtractor
 
 
 # Press the green button in the gutter to run the script.
 if __name__ == '__main__':
-    print_hi('PyCharm')
+    image = cv2.imread("Shanghai-Tower-Gensler-San-Francisco-world-Oriental-2015.jpg")
+    image = cv2.resize(image, (640, 480))
+    gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+
+    fe = FeatureExtractor(name="FAST")
+    fe.display_keypoints(gray)
+
+    cv2.imshow('image', gray)
+    cv2.waitKey()
 
 # See PyCharm help at https://www.jetbrains.com/help/pycharm/
