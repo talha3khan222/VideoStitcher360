@@ -2,6 +2,7 @@ import cv2
 
 from FeatureExtractor import FeatureExtractor
 from Camera import Camera
+from MultiCameraStreamer import MultiCameraStreamer
 
 
 # Press the green button in the gutter to run the script.
@@ -16,7 +17,12 @@ if __name__ == '__main__':
     cv2.imshow('image', gray)
     cv2.waitKey()'''
 
-    camera_obj = Camera(source=0)
-    camera_obj.stream()
+    # camera_obj = Camera(source=2)
+    # camera_obj.stream()
+
+    camera_sources = [3, 2, 4, 0]
+    mc = MultiCameraStreamer(camera_sources)
+    mc.stream()
+
 
 # See PyCharm help at https://www.jetbrains.com/help/pycharm/
