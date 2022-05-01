@@ -1,17 +1,17 @@
 import cv2
 import datetime
-from Descriptors import *
+from Utils.Descriptors import *
 
 
 class FeatureExtractor:
-    def __init__(self, name="ORB"):
+    def __init__(self, name="ORB", num_features=400):
         self._descriptor = None
-        class_name = "Descriptor_" + name + "()"
+        class_name = "Descriptor_" + name + "(" + str(num_features) + ")"
         self._descriptor = eval(class_name)
 
     def extract_features(self, image):
-        key_points, descriptors = self._descriptor.compute_features(image)
-        print(len(key_points))
+        grayscale = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+        key_points, descriptors = self._descriptor.compute_features(grayscale)
         return key_points, descriptors
 
     def display_keypoints(self, image):

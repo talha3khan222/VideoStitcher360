@@ -1,28 +1,13 @@
-import cv2
-
-from FeatureExtractor import FeatureExtractor
-from Camera import Camera
-from MultiCameraStreamer import MultiCameraStreamer
+# from imgstitch.stitch_images import *
+from Utils.MultiCameraStreamer import *
 
 
-# Press the green button in the gutter to run the script.
 if __name__ == '__main__':
-    '''image = cv2.imread("Shanghai-Tower-Gensler-San-Francisco-world-Oriental-2015.jpg")
-    image = cv2.resize(image, (640, 480))
-    gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
 
-    fe = FeatureExtractor(name="FAST")
-    fe.display_keypoints(gray)
-
-    cv2.imshow('image', gray)
-    cv2.waitKey()'''
-
-    # camera_obj = Camera(source=2)
-    # camera_obj.stream()
-
-    camera_sources = [3, 2, 4, 0]
-    mc = MultiCameraStreamer(camera_sources)
+    camera_sources = [0]
+    mc = MultiCameraStreamer(streaming_sources=camera_sources, apply_stitching=False, stitching_direction=1)
     mc.stream()
 
+    #stitch_images_and_save("images", ["2.png", "4.png"], 1, "results")
 
-# See PyCharm help at https://www.jetbrains.com/help/pycharm/
+
