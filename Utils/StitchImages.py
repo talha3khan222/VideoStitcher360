@@ -341,10 +341,10 @@ class StitchImages:
 
         for mat in matches_a:
             mat = [round(point) for point in mat]
-            image1 = cv2.circle(img_a, mat, 2, (0, 255, 0), -1)
+            #image1 = cv2.circle(img_a, mat, 2, (0, 255, 0), -1)
         for mat in matches_b:
             mat = [round(point) for point in mat]
-            image2 = cv2.circle(img_b, mat, 2, (0, 255, 255), -1)
+            #image2 = cv2.circle(img_b, mat, 2, (0, 255, 255), -1)
 
         cv2.imshow('image1', image1)
         cv2.imshow('image2', image2)
@@ -363,7 +363,7 @@ class StitchImages:
 
         #cv2.imshow('imout', im_out)
 
-        overlapping_area_a = img_a[:, np.where(matches_a[:, 1] == np.min(matches_a[:, 1])):]
+        # overlapping_area_a = img_a[:, np.where(matches_a[:, 1] == np.min(matches_a[:, 1])):]
 
         if self._homography_matrix is None:
             print("Not enough matching points")

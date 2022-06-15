@@ -5,12 +5,12 @@ import numpy as np
 
 class FeatureMatcher:
     def __init__(self):
-        self._features_extractor = FeatureExtractor(name="ORB", num_features=1000)
+        self._features_extractor = FeatureExtractor(name="SIFT", num_features=1000)
         # self._matcher = cv2.DescriptorMatcher.create(cv2.DescriptorMatcher.FLANNBASED)
-        self._matcher = cv2.BFMatcher(cv2.NORM_HAMMING)
+        self._matcher = cv2.BFMatcher()
 
-        self._matching_threshold = 0.75
-        self._minimum_matching_points = 4
+        self._matching_threshold = 0.5
+        self._minimum_matching_points = 3
 
     def match_images(self, image1, image2):
         kp1, desc1 = self._features_extractor.extract_features(image1)
@@ -27,15 +27,20 @@ class FeatureMatcher:
                     good_matches.append(match_1)
 
             if len(good_matches) < self._minimum_matching_points:
+                print("Not Enough Matching Points", len(good_matches))
                 return None, None
 
             # filter good matching key points
             good_kps_1 = []
             good_kps_2 = []
+            
+            good_kps_1 = np.float32([ kp1[m.queryIdx].pt for m in good_matches ]).reshape(-1, 1, 2)
+            good_kps_2 = np.float32([ kp2[m.trainIdx].pt for m in good_matches ]).reshape(-1, 1, 2)
 
-            for match in good_matches:
+            '''for match in good_matches:
                 good_kps_1.append(kp1[match.queryIdx].pt)  # matching keypoint in image 1
-                good_kps_2.append(kp2[match.trainIdx].pt)  # matching keypoint in image 2
+                good_kps_2.append(kp2[match.trainIdx].pt)  # matching keypoint in image 2'''
+            
 
-            return np.array(good_kps_1), np.array(good_kps_2)
+            return good_kps_1, good_kps_2
 
