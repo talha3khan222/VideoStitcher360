@@ -72,3 +72,22 @@ class Camera:
             key = cv2.waitKey(1)
             if key == ord('q'):
                 self._keep_streaming = False
+
+
+'''
+esoteric emailing
+nettbox
+vms
+new hunting
+restaurant helper
+bcp
+vps
+streaming quality 
+4k resolution
+picking up the streams at highest resolution and then reducing the quality to process and then making it 4k again after 
+getting doe with the processing
+
+We will not just get the points on lower resolution and will do the rest on 4k resolution while keeping the resolution
+of actual stream preserved
+
+'''
