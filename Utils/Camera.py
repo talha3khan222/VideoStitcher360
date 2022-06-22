@@ -1,9 +1,10 @@
 import cv2
 from Utils.DeFisheye import DeFishEye
+import numpy as np
 
 
 class Camera:
-    def __init__(self, source=0, doUnwarp=False, doCrop=False):
+    def __init__(self, source=0, doUnwarp=False, doCrop=False, parameters={}):
         self._name = str(source)
         self._source = source
         self._capturing_handle = cv2.VideoCapture(self._source)
@@ -14,8 +15,18 @@ class Camera:
         self._first_frame = True
         self._doUnwarp = doUnwarp
         self._doCrop = doCrop
-        
-        self._startY, self._endY = 0, 640
+
+        self._parameters = parameters
+
+        white_indices = np.where(self._parameters['mask'][:, :, 0] == 255)
+
+        self._startX = min(white_indices[0])
+        self._startY = min(white_indices[1])
+
+        self._endX = max(white_indices[0])
+        self._endY = max(white_indices[1])
+
+        '''self._startY, self._endY = 0, 640
         self._startX, self._endX = 0, 480
         if source == 1:
             self._startY = 97
@@ -30,7 +41,7 @@ class Camera:
             self._endY = 570
         elif source == 4:
             self._startY = 85
-            self._endY = 567
+            self._endY = 567'''
 
     def get_name(self):
         return self._name
@@ -44,6 +55,7 @@ class Camera:
         if not ret:
             return None
 
+        frame = cv2.bitwise_and(frame, self._parameters['mask'])
         frame = frame[self._startX:self._endX, self._startY: self._endY]
         
         if self._doUnwarp:

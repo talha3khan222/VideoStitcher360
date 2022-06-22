@@ -107,7 +107,7 @@ cv2.waitKey()
 
 cv2.destroyAllWindows()'''
 
-import numpy as np
+'''import numpy as np
 
 
 def stitch(left, right):
@@ -166,4 +166,4 @@ right = cv2.imread("images/3.png")
 
 stitch(left, right)
 
-cv2.destroyAllWindows()
+cv2.destroyAllWindows()'''
