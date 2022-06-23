@@ -57,6 +57,8 @@ class Camera:
 
         frame = cv2.bitwise_and(frame, self._parameters['mask'])
         frame = frame[self._startX:self._endX, self._startY: self._endY]
+
+        frame = cv2.resize(frame, (480, 480))
         
         if self._doUnwarp:
             cv2.imwrite("images/" + self._name + "_fisheye.png", frame)
