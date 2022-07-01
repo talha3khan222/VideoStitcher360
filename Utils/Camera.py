@@ -26,22 +26,7 @@ class Camera:
         self._endX = max(white_indices[0])
         self._endY = max(white_indices[1])
 
-        '''self._startY, self._endY = 0, 640
-        self._startX, self._endX = 0, 480
-        if source == 1:
-            self._startY = 97
-            self._endY = 595
-        elif source == 2:
-            self._startX = 10
-            self._startY = 90
-            self._endY = 571
-        elif source == 3:
-            self._startX = 15
-            self._startY = 73
-            self._endY = 570
-        elif source == 4:
-            self._startY = 85
-            self._endY = 567'''
+        self.frame_size = None
 
     def get_name(self):
         return self._name
@@ -70,8 +55,8 @@ class Camera:
 
                 self._defish.buildmap(Ws, Hs, Ws, Hd)
                 self._first_frame = False
-            else:
-                frame = self._defish.unwarp(frame, self._doCrop)
+
+            frame = self._defish.unwarp(frame, self._doCrop)
 
         return frame
 
@@ -87,21 +72,3 @@ class Camera:
             if key == ord('q'):
                 self._keep_streaming = False
 
-
-'''
-esoteric emailing
-nettbox
-vms
-new hunting
-restaurant helper
-bcp
-vps
-streaming quality 
-4k resolution
-picking up the streams at highest resolution and then reducing the quality to process and then making it 4k again after 
-getting doe with the processing
-
-We will not just get the points on lower resolution and will do the rest on 4k resolution while keeping the resolution
-of actual stream preserved
-
-'''

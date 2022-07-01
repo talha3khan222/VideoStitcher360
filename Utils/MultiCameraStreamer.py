@@ -10,52 +10,58 @@ import concurrent.futures
 from Utils.PanoramaBuilder import PanoramaBuilder
 from Utils.FeatureMatcher import FeatureMatcher
 
+import imutils
+
 
 current_frames = []
 
 
 def trim(frame):
-    #crop top
+    # crop top
     if not np.sum(frame[0]):
         return trim(frame[1:])
-    #crop top
+    # crop top
     if not np.sum(frame[-1]):
         return trim(frame[:-2])
-    #crop top
+    # crop top
     if not np.sum(frame[:, 0]):
         return trim(frame[:, 1:])
-    #crop top
+    # crop top
     if not np.sum(frame[:, -1]):
         return trim(frame[:, :-2])
     return frame
 
 
-def stitch(right, left):
-
+def stitch(left, right):
     fm = FeatureMatcher()
     src_pts, dst_pts = fm.match_images(left, right)
 
-    MIN_MATCH_COUNT = 2
-    if src_pts is None or len(src_pts) < MIN_MATCH_COUNT:
-        print("Minimum Matching Points: %d", MIN_MATCH_COUNT)
+    if src_pts is None:
+        return
+
+    MIN_MATCH_COUNT = 3
+    if len(src_pts) <= MIN_MATCH_COUNT:
+        print("Not enough matches found", len(src_pts), MIN_MATCH_COUNT)
         return None
 
     M, mask = cv2.findHomography(src_pts, dst_pts, cv2.RANSAC, 5.0)
 
     h, w = left.shape[0], left.shape[1]
-    pts = np.float32([[0, 0], [0, h-1], [w-1, h-1], [w-1, 0]]).reshape(-1, 1, 2)
+    pts = np.float32([[0, 0], [0, h - 1], [w - 1, h - 1], [w - 1, 0]]).reshape(-1, 1, 2)
     dst = cv2.perspectiveTransform(pts, M)
-    img2 = cv2.polylines(right,[np.int32(dst)], True, (0, 255, 255), 2, cv2.LINE_AA)
+    # img2 = cv2.polylines(right, [np.int32(dst)], True, (0, 255, 255), 2, cv2.LINE_AA)
     # cv2.imshow("original_image_overlapping.jpg", img2)
-    
+
     dst = cv2.warpPerspective(left, M, (right.shape[1] + left.shape[1], right.shape[0]))
-    # cv2.imshow('dst', dst)
+    cv2.imshow('dst', dst)
     # cv2.waitKey()
     dst[0:right.shape[0], 0:right.shape[1]] = right
-    # cv2.imshow("original_image_stitched.jpg", dst)
-    
-    # cv2.imshow("original_image_stitched_crop.jpg", trim(dst))
-    return dst
+    cv2.imshow("original_image_stitched.jpg", dst)
+
+    cv2.imshow("original_image_stitched_crop.jpg", trim(dst))
+    # cv2.waitKey()
+
+    return trim(dst)
 
 
 class MultiCameraStreamer:
@@ -83,45 +89,71 @@ class MultiCameraStreamer:
             if not self._apply_stitching:
                 for index, frame in enumerate(frames):
                     if frame is not None:
-                        resized_frame = cv2.resize(frame, (450, 300))
                         cv2.imshow(self._cameras[index].get_name(), frame)
                         cv2.imwrite('images/' + self._cameras[index].get_name() + ".png", frame)
                     else:
                         print("Nothing", self._cameras[index].get_name())
 
             if self._apply_stitching:
-                '''stitched_frame = self._images_stitcher.stitch(frames[0], frames[1], self._stitching_direction)
-                if stitched_frame is not None:
-                    pass'''
-                '''left = frames[1][:, :870]
-                right = frames[3][:, 20:]
-
-                # stitch(left, right)
-                left = cv2.resize(left, (480, 480))
-                right = cv2.resize(right, (480, 480))
-
-                dst = np.concatenate((left, right), 1)
-                cv2.imshow('stitched image', dst)'''
-                '''final = cv2.resize(frames[0], (480, 480))
-                percentage = 0.05
-                percent_pixels = round(percentage * final.shape[1])
-                final = final[:, percent_pixels:final.shape[1] - percent_pixels]
-                
-                for i in range(1, len(frames)):
-                    # stitched_image = stitch(cv2.resize(frames[i], (480, 480)), cv2.resize(frames[i+1], (480, 480)))
-                    left = final[:, :]
-                    right = cv2.resize(frames[i], (480, 480))
-                    
-                    right = right[:, percent_pixels:right.shape[1] - percent_pixels]
-
-                    final = np.concatenate((final, right), 1)
-                
-                # pano = self._pano_maker.buildPano([Image.fromarray(cv2.resize(defished, (480, 480))) for defished in frames])
-                cv2.imshow('Pano', final)'''
                 try:
-                    (status, stitched) = self._stitcher.stitch(frames)
+                    (status1, stitched1) = self._stitcher.stitch(frames[:1])
+                    (status2, stitched2) = self._stitcher.stitch(frames[1:])
+
+                    if status1 == 0:
+                        stitched1 = trim(stitched1)
+                        stitched1 = cv2.resize(stitched1, (480 * 2, 480))
+                        cv2.imwrite('Half1.png', stitched1)
+                        cv2.imshow('Half 1', stitched1)
+                    if status2 == 0:
+                        stitched2 = trim(stitched2)
+                        stitched2 = cv2.resize(stitched2, (480 * 2, 480))
+                        cv2.imwrite('Half2.png', stitched2)
+                        cv2.imshow('Half 2', stitched2)
+
+                    '''(status, stitched) = self._stitcher.stitch(frames)
                     if status == 0:
-                        cv2.imshow('Stitched', stitched)
+                        stitched = cv2.resize(stitched, (480 * 2, 480))
+
+                        stitched = cv2.copyMakeBorder(stitched, 10, 10, 10, 10,
+                                                      cv2.BORDER_CONSTANT, (0, 0, 0))
+                        # convert the stitched image to grayscale and threshold it
+                        # such that all pixels greater than zero are set to 255
+                        # (foreground) while all others remain 0 (background)
+                        gray = cv2.cvtColor(stitched, cv2.COLOR_BGR2GRAY)
+                        thresh = cv2.threshold(gray, 0, 255, cv2.THRESH_BINARY)[1]
+                        # find all external contours in the threshold image then find
+                        # the *largest* contour which will be the contour/outline of
+                        # the stitched image
+                        cnts = cv2.findContours(thresh.copy(), cv2.RETR_EXTERNAL,
+                                                cv2.CHAIN_APPROX_SIMPLE)
+                        cnts = imutils.grab_contours(cnts)
+                        c = max(cnts, key=cv2.contourArea)
+                        # allocate memory for the mask which will contain the
+                        # rectangular bounding box of the stitched image region
+                        mask = np.zeros(thresh.shape, dtype="uint8")
+                        (x, y, w, h) = cv2.boundingRect(c)
+                        cv2.rectangle(mask, (x, y), (x + w, y + h), 255, -1)
+
+                        stitched = stitched[y:y + h, x:x + w]
+
+                        stitched = trim(stitched)
+
+                        cv2.imwrite('stitched.png', stitched)
+                        cv2.imshow('Stitched Test', stitched)'''
+
+                    if status1 == 0 and status2 == 0:
+                        half_columns_count = round(stitched2.shape[1] / 2)
+
+                        stitched_halves = [stitched2[:, :half_columns_count],
+                                           stitched1,
+                                           stitched2[:, half_columns_count:]]
+
+                        (status, stitched) = self._stitcher.stitch(stitched_halves)
+                        if status == 0:
+                            stitched = cv2.resize(stitched, (480 * 2, 480))
+                            stitched = trim(stitched)
+                            cv2.imwrite('stitched.png', stitched)
+                            cv2.imshow('Stitched', stitched)
                 except Exception as e:
                     print(e)
 

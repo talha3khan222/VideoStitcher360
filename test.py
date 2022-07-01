@@ -107,7 +107,7 @@ cv2.waitKey()
 
 cv2.destroyAllWindows()'''
 
-'''import numpy as np
+import numpy as np
 
 
 def stitch(left, right):
@@ -121,9 +121,6 @@ def stitch(left, right):
     if len(src_pts) > MIN_MATCH_COUNT:
 
         M, mask = cv2.findHomography(src_pts, dst_pts, cv2.RANSAC, 5.0)
-        homography = M
-        h_mask = mask
-        print(M, mask)
 
         h, w = left.shape[0], left.shape[1]
         pts = np.float32([[0, 0], [0, h - 1], [w - 1, h - 1], [w - 1, 0]]).reshape(-1, 1, 2)
@@ -158,12 +155,12 @@ def stitch(left, right):
     cv2.waitKey()
 
 
-left = cv2.imread("images/4.png")
-right = cv2.imread("images/3.png")
+left = cv2.imread("images/0.png")
+right = cv2.imread("images/1.png")
 
 # left = left[:, :450]
 # right = right[:, :450]
 
 stitch(left, right)
 
-cv2.destroyAllWindows()'''
+cv2.destroyAllWindows()
