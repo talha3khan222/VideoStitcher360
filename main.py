@@ -7,7 +7,9 @@ from Utils.generals import find_cameras_indexes
 if __name__ == '__main__':
 
     cameras_count = 4
-    camera_sources = find_cameras_indexes(cameras_count)
+    # camera_sources = find_cameras_indexes(cameras_count)
+    # print(camera_sources)
+    camera_sources = [0, 1, 2, 3]
     if len(camera_sources) < cameras_count:
         print("Couldn't find the required number of cameras. Required Cameras Count was:", cameras_count)
     else:
