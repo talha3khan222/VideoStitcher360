@@ -5,9 +5,9 @@ import numpy as np
 
 class FeatureMatcher:
     def __init__(self):
-        self._features_extractor = FeatureExtractor(name="SIFT", num_features=1000)
+        self._features_extractor = FeatureExtractor(name="ORB", num_features=1000)
         # self._matcher = cv2.DescriptorMatcher.create(cv2.DescriptorMatcher.FLANNBASED)
-        self._matcher = cv2.BFMatcher()
+        self._matcher = cv2.BFMatcher(cv2.NORM_HAMMING, crossCheck=True)
 
         self._matching_threshold = 0.5
         self._minimum_matching_points = 3
@@ -34,13 +34,48 @@ class FeatureMatcher:
             good_kps_1 = []
             good_kps_2 = []
             
-            good_kps_1 = np.float32([ kp1[m.queryIdx].pt for m in good_matches ]).reshape(-1, 1, 2)
-            good_kps_2 = np.float32([ kp2[m.trainIdx].pt for m in good_matches ]).reshape(-1, 1, 2)
+            good_kps_1 = np.float32([kp1[m.queryIdx].pt for m in good_matches ]).reshape(-1, 1, 2)
+            good_kps_2 = np.float32([kp2[m.trainIdx].pt for m in good_matches ]).reshape(-1, 1, 2)
 
             '''for match in good_matches:
                 good_kps_1.append(kp1[match.queryIdx].pt)  # matching keypoint in image 1
                 good_kps_2.append(kp2[match.trainIdx].pt)  # matching keypoint in image 2'''
-            
 
             return good_kps_1, good_kps_2
 
+    def get_matching_points(self, im1, im2):
+        # Convert images to grayscale
+        im1Gray = cv2.cvtColor(im1, cv2.COLOR_BGR2GRAY)
+        im2Gray = cv2.cvtColor(im2, cv2.COLOR_BGR2GRAY)
+
+        keypoints1, descriptors1 = self._features_extractor.extract_features(im1)
+        keypoints2, descriptors2 = self._features_extractor.extract_features(im2)
+
+        # Match features.
+        matcher = cv2.DescriptorMatcher_create(cv2.DESCRIPTOR_MATCHER_BRUTEFORCE_HAMMING)
+        matcher = cv2.BFMatcher(cv2.NORM_HAMMING2, crossCheck=True)
+        # FLANN parameters
+        '''FLANN_INDEX_KDTREE = 1
+        index_params = dict(algorithm=FLANN_INDEX_KDTREE, trees=5)
+        search_params = dict(checks=50)  # or pass empty dictionary
+        matcher = cv2.FlannBasedMatcher(index_params, search_params)'''
+
+        matches = self._matcher.match(descriptors1, descriptors2, None)
+        # matches = matcher.knnMatch(descriptors1, descriptors2, k=2)
+
+        # Sort matches by score
+        list(matches).sort(key=lambda x: x.distance, reverse=False)
+
+        # Remove not so good matches
+        numGoodMatches = int(len(matches) * self._matching_threshold)
+        matches = matches[:numGoodMatches]
+
+        # Extract location of good matches
+        points1 = np.zeros((len(matches), 2), dtype=np.float32)
+        points2 = np.zeros((len(matches), 2), dtype=np.float32)
+
+        for i, match in enumerate(matches):
+            points1[i, :] = keypoints1[match.queryIdx].pt
+            points2[i, :] = keypoints2[match.trainIdx].pt
+
+        return points1, points2

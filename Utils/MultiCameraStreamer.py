@@ -79,6 +79,7 @@ class MultiCameraStreamer:
         self._pano_maker = PanoramaBuilder()
 
         self._stitcher = cv2.Stitcher_create()
+        self._stitcher1 = cv2.Stitcher_create()
 
     def stream(self):
         while self._keep_streaming:
@@ -96,83 +97,51 @@ class MultiCameraStreamer:
 
             if self._apply_stitching:
                 try:
-                    (status1, stitched1) = self._stitcher.stitch([frames[0], frames[1]])
-                    (status2, stitched2) = self._stitcher.stitch([frames[2], frames[3]])
+                    # self.do_stitching(frames)
+
+                    half1 = frames[1]
+                    half2 = frames[2]
+
+                    half_columns_count = round(half1.shape[1] / 2)
+
+                    q11, q12 = half1[:, :half_columns_count], half1[:, half_columns_count:]
+                    q21, q22 = half2[:, :half_columns_count], half2[:, half_columns_count:]
+
+                    q11 = cv2.resize(q11, (480, 480))
+                    q12 = cv2.resize(q12, (480, 480))
+
+                    q21 = cv2.resize(q21, (480, 480))
+                    q22 = cv2.resize(q22, (480, 480))
+
+                    cv2.imshow('q11', q11)
+                    cv2.imshow('q12', q12)
+
+                    cv2.imshow('q21', q21)
+                    cv2.imshow('q22', q22)
+
+                    status1, stitched1 = self._stitcher.stitch([q12, q21])
+                    status2, stitched2 = self._stitcher1.stitch([q22, q11])
 
                     if status1 == 0:
                         stitched1 = trim(stitched1)
-                        stitched1 = cv2.resize(stitched1, (480 * 2, 480))
-                        cv2.imwrite('Half1.png', stitched1)
-                        cv2.imshow('Half 1', stitched1)
+                        stitched1 = cv2.resize(stitched1, (480, 480))
+                        cv2.imwrite('Stitched Half 1.png', stitched1)
+                        cv2.imshow('Stitched Half 1', stitched1)
+
                     if status2 == 0:
                         stitched2 = trim(stitched2)
-                        stitched2 = cv2.resize(stitched2, (480 * 2, 480))
-                        cv2.imwrite('Half2.png', stitched2)
-                        cv2.imshow('Half 2', stitched2)
+                        stitched2 = cv2.resize(stitched2, (480, 480))
+                        cv2.imwrite('Stitched Half 2.png', stitched2)
+                        cv2.imshow('Stitched Half 2', stitched2)
 
-                    '''(status, stitched) = self._stitcher.stitch(frames)
-                    if status == 0:
-                        stitched = cv2.resize(stitched, (480 * 2, 480))
-
-                        stitched = cv2.copyMakeBorder(stitched, 10, 10, 10, 10,
-                                                      cv2.BORDER_CONSTANT, (0, 0, 0))
-                        # convert the stitched image to grayscale and threshold it
-                        # such that all pixels greater than zero are set to 255
-                        # (foreground) while all others remain 0 (background)
-                        gray = cv2.cvtColor(stitched, cv2.COLOR_BGR2GRAY)
-                        thresh = cv2.threshold(gray, 0, 255, cv2.THRESH_BINARY)[1]
-                        # find all external contours in the threshold image then find
-                        # the *largest* contour which will be the contour/outline of
-                        # the stitched image
-                        cnts = cv2.findContours(thresh.copy(), cv2.RETR_EXTERNAL,
-                                                cv2.CHAIN_APPROX_SIMPLE)
-                        cnts = imutils.grab_contours(cnts)
-                        c = max(cnts, key=cv2.contourArea)
-                        # allocate memory for the mask which will contain the
-                        # rectangular bounding box of the stitched image region
-                        mask = np.zeros(thresh.shape, dtype="uint8")
-                        (x, y, w, h) = cv2.boundingRect(c)
-                        cv2.rectangle(mask, (x, y), (x + w, y + h), 255, -1)
-
-                        stitched = stitched[y:y + h, x:x + w]
-
-                        stitched = trim(stitched)
-
-                        cv2.imwrite('stitched.png', stitched)
-                        cv2.imshow('Stitched Test', stitched)'''
-
+                    # (status, stitched) = self._stitcher.stitch(stitched_halves)
                     if status1 == 0 and status2 == 0:
-                        half_columns_count = round(stitched2.shape[1] / 2)
+                        stitched = cv2.hconcat([stitched2, stitched1])
+                        stitched = cv2.resize(stitched, (480 * 2, 480))
+                        stitched = trim(stitched)
+                        cv2.imwrite('stitched.png', stitched)
+                        cv2.imshow('Stitched', stitched)
 
-                        stitched_halves = [stitched2[:, :half_columns_count],
-                                           stitched1,
-                                           stitched2[:, half_columns_count:]]
-
-                        (stitched_half_status1, stitched_half1) = self._stitcher.stitch(
-                            [stitched2[:, :half_columns_count], stitched1[:, half_columns_count:]])
-
-                        (stitched_half_status2, stitched_half2) = self._stitcher.stitch(
-                            [stitched1[:, :half_columns_count], stitched2[:, half_columns_count:]])
-
-                        if stitched_half_status1 == 0:
-                            stitched_half1 = trim(stitched_half1)
-                            stitched_half1 = cv2.resize(stitched_half1, (480 * 2, 480))
-                            cv2.imwrite('Stitched Half 1.png', stitched_half1)
-                            cv2.imshow('Stitched Half 1', stitched_half1)
-
-                        if stitched_half_status2 == 0:
-                            stitched_half2 = trim(stitched_half2)
-                            stitched_half2 = cv2.resize(stitched_half2, (480 * 2, 480))
-                            cv2.imwrite('Stitched Half 2.png', stitched_half2)
-                            cv2.imshow('Stitched Half 2', stitched_half2)
-
-                        # (status, stitched) = self._stitcher.stitch(stitched_halves)
-                        if stitched_half_status1 == 0 and stitched_half_status2 == 0:
-                            stitched = cv2.hconcat([stitched_half2, stitched_half1])
-                            stitched = cv2.resize(stitched, (480 * 2, 480))
-                            stitched = trim(stitched)
-                            cv2.imwrite('stitched.png', stitched)
-                            cv2.imshow('Stitched', stitched)
                 except Exception as e:
                     print(e)
 
@@ -182,4 +151,57 @@ class MultiCameraStreamer:
         for cam in self._cameras:
             cam.release_handle()
         cv2.destroyAllWindows()
+
+    def do_stitching(self, frames):
+        stitched = None
+
+        (status1, stitched1) = self._stitcher.stitch([frames[0], frames[1]])
+        (status2, stitched2) = self._stitcher.stitch([frames[2], frames[3]])
+
+        if status1 == 0:
+            stitched1 = trim(stitched1)
+            stitched1 = cv2.resize(stitched1, (480 * 2, 480))
+            cv2.imwrite('Half1.png', stitched1)
+            cv2.imshow('Half 1', stitched1)
+        if status2 == 0:
+            stitched2 = trim(stitched2)
+            stitched2 = cv2.resize(stitched2, (480 * 2, 480))
+            cv2.imwrite('Half2.png', stitched2)
+            cv2.imshow('Half 2', stitched2)
+
+        if status1 == 0 and status2 == 0:
+            half_columns_count = round(stitched2.shape[1] / 2)
+
+            stitched_halves = [stitched2[:, :half_columns_count],
+                               stitched1,
+                               stitched2[:, half_columns_count:]]
+
+            (stitched_half_status1, stitched_half1) = self._stitcher.stitch(
+                [stitched2[:, :half_columns_count], stitched1[:, half_columns_count:]])
+
+            (stitched_half_status2, stitched_half2) = self._stitcher.stitch(
+                [stitched1[:, :half_columns_count], stitched2[:, half_columns_count:]])
+
+            if stitched_half_status1 == 0:
+                stitched_half1 = trim(stitched_half1)
+                stitched_half1 = cv2.resize(stitched_half1, (480 * 2, 480))
+                cv2.imwrite('Stitched Half 1.png', stitched_half1)
+                cv2.imshow('Stitched Half 1', stitched_half1)
+
+            if stitched_half_status2 == 0:
+                stitched_half2 = trim(stitched_half2)
+                stitched_half2 = cv2.resize(stitched_half2, (480 * 2, 480))
+                cv2.imwrite('Stitched Half 2.png', stitched_half2)
+                cv2.imshow('Stitched Half 2', stitched_half2)
+
+            # (status, stitched) = self._stitcher.stitch(stitched_halves)
+            if stitched_half_status1 == 0 and stitched_half_status2 == 0:
+                stitched = cv2.hconcat([stitched_half2, stitched_half1])
+                stitched = cv2.resize(stitched, (480 * 2, 480))
+                stitched = trim(stitched)
+                cv2.imwrite('stitched.png', stitched)
+                cv2.imshow('Stitched', stitched)
+
+        return stitched
+
 

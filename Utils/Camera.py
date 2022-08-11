@@ -8,6 +8,9 @@ class Camera:
         self._name = str(source)
         self._source = source
         self._capturing_handle = cv2.VideoCapture(self._source)
+
+        #self._capturing_handle.set(3, 1920)
+        #self._capturing_handle.set(4, 1080)
         
         self._keep_streaming = True
         
