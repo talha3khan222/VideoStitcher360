@@ -2,12 +2,13 @@ from __future__ import print_function
 import cv2
 import numpy as np
 from scipy import ndimage as ndi
+from math import atan2, degrees, radians
 
 from Tailor import Tailor
 
 
 MAX_FEATURES = 500
-GOOD_MATCH_PERCENT = 0.75
+GOOD_MATCH_PERCENT = 0.15
 
 
 def registration(P, x_dash, y_dash):
@@ -82,6 +83,18 @@ def affine(data, affine, draw_area_size):
     return data_linear
 
 
+def get_angle(point_1, point_2):  # These can also be four parameters instead of two arrays
+    angle = atan2(point_2[1] - point_1[1], point_2[0] - point_1[0])
+
+    # Optional
+    angle = degrees(angle)
+
+    # OR
+    # angle = radians(angle)
+
+    return angle
+
+
 def alignImages(im1, im2):
 
     cim1 = im1.copy()
@@ -131,9 +144,25 @@ def alignImages(im1, im2):
     points1 = np.zeros((len(matches), 2), dtype=np.float32)
     points2 = np.zeros((len(matches), 2), dtype=np.float32)
 
+    points1 = []
+    points2 = []
+
     for i, match in enumerate(matches):
-        points1[i, :] = keypoints1[match.queryIdx].pt
-        points2[i, :] = keypoints2[match.trainIdx].pt
+
+        p2 = keypoints2[match.trainIdx].pt
+        angle = get_angle(list(keypoints1[match.queryIdx].pt), [p2[0] + 480, p2[1] + 480])
+
+        if abs(angle) < 60:
+            print(angle)
+            points1.append(keypoints1[match.queryIdx].pt)
+            points2.append(keypoints2[match.trainIdx].pt)
+        # points1[i, :] = keypoints1[match.queryIdx].pt
+        # points2[i, :] = keypoints2[match.trainIdx].pt
+
+    points1 = np.array(points1, dtype=np.float32)
+    points2 = np.array(points2, dtype=np.float32)
+
+    ########################################################################
 
     vec_one = np.ones((points1.shape[0], 1))
     P = np.hstack([points1, vec_one])
@@ -142,22 +171,50 @@ def alignImages(im1, im2):
 
     A = registration(P, x_dash, y_dash)
 
-    # Find homography
-    h, mask = cv2.findHomography(points1, points2, cv2.RANSAC)
+    A_inv = np.linalg.inv(A)
 
-    # h[2, :2] = 0
-
-    # Use homography
-    height, width, channels = im2.shape
-    im1Reg = cv2.warpPerspective(im1, h, (width, height))
-
-    img1 = ndi.affine_transform(im1, A)
+    img2 = cv2.merge([ndi.affine_transform(cim2[:, :, 0], A_inv),
+                      ndi.affine_transform(cim2[:, :, 1], A_inv),
+                      ndi.affine_transform(cim2[:, :, 2], A_inv)])
     # img1 = affine(im2[:, :, 0], A, (480, 480))
 
-    cv2.imshow('Affine', img1)
+    cv2.imshow('Affine', img2)
 
-    combined = cv2.bitwise_or(im1Reg, im2)
-    cv2.imshow('Combined', combined)
+    ########################################################################
+
+    # Find homography
+    h, mask = cv2.findHomography(points1, points2, cv2.RANSAC)
+    print("Estimated Homography: \n", h)
+
+    # Use homography
+    height, width, channels = cim2.shape
+    im1Reg = cv2.warpPerspective(cim2, h, (width, height))
+
+    ########################################################################
+
+    pt1 = points1[0]
+    pt2 = points2[0]
+
+    new_pt1 = [pt1[0] + cim1.shape[1] // 2, pt1[1] + cim1.shape[1]]
+
+    x = np.array([[pt2[0]], [pt2[1]], [1]])
+    x_dash = np.matmul(A_inv, x)
+    pt2 = x_dash[:2, 0]
+
+    image_starting = (int(new_pt1[0] - pt2[0]), 0)
+    image_ending = (int(image_starting[0] + img2.shape[1]), int(image_starting[1] + img2.shape[0]))
+
+    img1 = cv2.merge([ndi.affine_transform(cim2[:, :, 0], A),
+                      ndi.affine_transform(cim2[:, :, 1], A),
+                      ndi.affine_transform(cim2[:, :, 2], A)])
+
+    final = np.zeros((480, 960, 3), dtype=np.uint8)
+    final[image_starting[1]: image_ending[1], image_starting[0]:image_ending[0]] = img1
+    final[:, :480] = cim1
+
+    # final = cv2.rectangle(final, image_starting, image_ending, (0, 255, 255), 2)
+
+    cv2.imshow('Final', final)
 
     return im1Reg, h
 
@@ -181,14 +238,15 @@ if __name__ == '__main__':
     print("Aligning images ...")
     # Registered image will be restored in imReg.
     # The estimated homography will be stored in h.
-    imReg, h = alignImages(im, imReference)
+    # imReg, h = alignImages(im, imReference)
     # imReg = tailor.align(im, imReference)
-    cv2.imshow('Reg', imReg)
+    stitched_image = tailor.stitch(im, imReference)
+    cv2.imshow('Stitched', stitched_image)
 
     # Write aligned image to disk.
     outFilename = "aligned.jpg"
     print("Saving aligned image : ", outFilename)
-    cv2.imwrite(outFilename, imReg)
+    # cv2.imwrite(outFilename, imReg)
 
     cv2.waitKey()
     cv2.destroyAllWindows()

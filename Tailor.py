@@ -1,23 +1,16 @@
 import cv2
 import numpy as np
+from scipy import ndimage as ndi
+
 from Utils.FeatureMatcher import FeatureMatcher
-
-
-def registration(P, x_dash, y_dash):
-    w1 = np.linalg.inv(P.T @ P) @ P.T @ x_dash
-    w2 = np.linalg.inv(P.T @ P) @ P.T @ y_dash
-    affine_matrix = np.array([[1.0, 0.0, 0.0],
-                              [0.0, 1.0, 0.0],
-                              [0.0, 0.0, 1.0]])
-    affine_matrix[0, :] = w1
-    affine_matrix[1, :] = w2
-
-    return affine_matrix
+from Utils.generals import registration, get_angle
 
 
 class Tailor:
     def __init__(self):
         self._feature_matcher = FeatureMatcher()
+        self._transformation_matrix = None
+        self._image_points = None
 
     def align(self, img1, img2):
         points1, points2 = self._feature_matcher.get_matching_points(img1, img2)
@@ -26,7 +19,7 @@ class Tailor:
 
         transformed_images = self.apply_transformations(img2, t_matrix, (480, 480))
 
-        return transformed_images["homography"]
+        return transformed_images
 
     def compute_transformations(self, points1, points2):
         vec_one = np.ones((points1.shape[0], 1))
@@ -45,23 +38,55 @@ class Tailor:
 
         return transformation_matrix
 
-    def apply_homography(self, img, h, shape):
-        imReg = cv2.warpPerspective(img, h, shape)
+    def apply_homography(self, img, matrix, shape):
+        return cv2.warpPerspective(img, matrix, shape)
 
-        '''h, w, _ = img.shape
-        pts = np.float32([[0, 0], [0, h - 1], [w - 1, h - 1], [w - 1, 0]]).reshape(-1, 1, 2)
-        dst = cv2.perspectiveTransform(pts, h)
+    def apply_affine_transformation(self, img, matrix):
+        img2 = cv2.merge([ndi.affine_transform(img[:, :, 0], matrix),
+                          ndi.affine_transform(img[:, :, 1], matrix),
+                          ndi.affine_transform(img[:, :, 2], matrix)])
 
-        cv2.imshow('dst', dst)'''
-
-        return imReg
-
-    def apply_affine_transformation(self, img, matrix, shape):
-        return None
+        return img2
 
     def apply_transformations(self, img, transformation_matrix, shape):
+        A_inv = np.linalg.inv(transformation_matrix["affine"])
         transformed_images = {"homography": self.apply_homography(img, transformation_matrix["homography"], shape),
-                              "affine": self.apply_affine_transformation(img, transformation_matrix["affine"], shape)}
+                              "affine": self.apply_affine_transformation(img, A_inv)}
 
         return transformed_images
+
+    def calculate_required_parameters(self, img1, img2):
+        points1, points2 = self._feature_matcher.get_matching_points(img1, img2)
+
+        self._transformation_matrix = self.compute_transformations(points1, points2)
+
+        pt1 = points1[0]
+        pt2 = points2[0]
+
+        new_pt1 = [pt1[0] + img1.shape[1] // 2, pt1[1] + img1.shape[1]]
+
+        x = np.array([[pt2[0]], [pt2[1]], [1]])
+        x_dash = np.matmul(np.linalg.inv(self._transformation_matrix["affine"]), x)
+        pt2 = x_dash[:2, 0]
+
+        image_starting = (int(new_pt1[0] - pt2[0]), 0)
+        image_ending = (int(image_starting[0] + img2.shape[1]), int(image_starting[1] + img2.shape[0]))
+
+        self._image_points = {"starting": image_starting, "ending": image_ending}
+
+    def stitch(self, img1, img2):
+        if self._transformation_matrix is None:
+            self.calculate_required_parameters(img1, img2)
+
+        img = self.apply_affine_transformation(img2, self._transformation_matrix["affine"])
+
+        final = np.zeros((480, 960, 3), dtype=np.uint8)
+        final[self._image_points["starting"][1]: self._image_points["ending"][1],
+              self._image_points["starting"][0]: self._image_points["ending"][0]] = img
+
+        final[:, :480] = img1
+
+        return final
+
+
 

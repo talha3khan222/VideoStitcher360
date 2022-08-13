@@ -2,6 +2,8 @@ from Utils.FeatureExtractor import FeatureExtractor
 import cv2
 import numpy as np
 
+from Utils.generals import get_angle
+
 
 class FeatureMatcher:
     def __init__(self):
@@ -44,6 +46,12 @@ class FeatureMatcher:
             return good_kps_1, good_kps_2
 
     def get_matching_points(self, im1, im2):
+        cim1 = im1.copy()
+        cim2 = im2.copy()
+
+        im1 = im1[:, (im1.shape[1] // 2):]
+        im2 = im2[:, :(im2.shape[1] // 2)]
+
         # Convert images to grayscale
         im1Gray = cv2.cvtColor(im1, cv2.COLOR_BGR2GRAY)
         im2Gray = cv2.cvtColor(im2, cv2.COLOR_BGR2GRAY)
@@ -51,17 +59,7 @@ class FeatureMatcher:
         keypoints1, descriptors1 = self._features_extractor.extract_features(im1)
         keypoints2, descriptors2 = self._features_extractor.extract_features(im2)
 
-        # Match features.
-        matcher = cv2.DescriptorMatcher_create(cv2.DESCRIPTOR_MATCHER_BRUTEFORCE_HAMMING)
-        matcher = cv2.BFMatcher(cv2.NORM_HAMMING2, crossCheck=True)
-        # FLANN parameters
-        '''FLANN_INDEX_KDTREE = 1
-        index_params = dict(algorithm=FLANN_INDEX_KDTREE, trees=5)
-        search_params = dict(checks=50)  # or pass empty dictionary
-        matcher = cv2.FlannBasedMatcher(index_params, search_params)'''
-
         matches = self._matcher.match(descriptors1, descriptors2, None)
-        # matches = matcher.knnMatch(descriptors1, descriptors2, k=2)
 
         # Sort matches by score
         list(matches).sort(key=lambda x: x.distance, reverse=False)
@@ -74,8 +72,19 @@ class FeatureMatcher:
         points1 = np.zeros((len(matches), 2), dtype=np.float32)
         points2 = np.zeros((len(matches), 2), dtype=np.float32)
 
+        points1 = []
+        points2 = []
+
         for i, match in enumerate(matches):
-            points1[i, :] = keypoints1[match.queryIdx].pt
-            points2[i, :] = keypoints2[match.trainIdx].pt
+            p2 = keypoints2[match.trainIdx].pt
+            angle = get_angle(list(keypoints1[match.queryIdx].pt), [p2[0] + 480, p2[1] + 480])
+
+            if abs(angle) < 60:
+                print(angle)
+                points1.append(keypoints1[match.queryIdx].pt)
+                points2.append(keypoints2[match.trainIdx].pt)
+
+        points1 = np.array(points1, dtype=np.float32)
+        points2 = np.array(points2, dtype=np.float32)
 
         return points1, points2
