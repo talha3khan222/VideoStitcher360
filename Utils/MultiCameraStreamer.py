@@ -73,11 +73,10 @@ class MultiCameraStreamer:
 
         self._keep_streaming = True
         self._apply_stitching = apply_stitching
+
         self._stitching_direction = stitching_direction
         self._images_stitcher = StitchImages()
-        
         self._pano_maker = PanoramaBuilder()
-
         self._stitcher = cv2.Stitcher_create()
         self._stitcher1 = cv2.Stitcher_create()
 
@@ -90,8 +89,8 @@ class MultiCameraStreamer:
             if not self._apply_stitching:
                 for index, frame in enumerate(frames):
                     if frame is not None:
-                        cv2.imshow(self._cameras[index].get_name(), frame)
-                        cv2.imwrite('images/' + self._cameras[index].get_name() + ".png", frame)
+                        cv2.imshow(str(index), frame)
+                        cv2.imwrite('images/' + str(index) + ".png", frame)
                     else:
                         print("Nothing", self._cameras[index].get_name())
 

@@ -2,45 +2,33 @@ from __future__ import print_function
 import cv2
 import numpy as np
 from scipy import ndimage as ndi
-from math import atan2, degrees, radians
 
-from Tailor import Tailor
+from Utils.Tailor import Tailor
+from Utils.generals import registration, get_angle
 
 
 MAX_FEATURES = 500
 GOOD_MATCH_PERCENT = 0.15
 
 
-def registration(P, x_dash, y_dash):
-    w1 = np.linalg.inv(P.T @ P) @ P.T @ x_dash
-    w2 = np.linalg.inv(P.T @ P) @ P.T @ y_dash
-    affine_matrix = np.array([[1.0, 0.0, 0.0],
-                              [0.0, 1.0, 0.0],
-                              [0.0, 0.0, 1.0]])
-    affine_matrix[0, :] = w1
-    affine_matrix[1, :] = w2
-    print(affine_matrix)
-    return affine_matrix
-
-
-#A function that refers to the end of the array for those who exceed the range of the reference image
+# A function that refers to the end of the array for those who exceed the range of the reference image
 def clip_xy(ref_xy, img_shape):
-    #Replace for x coordinate
+    # Replace for x coordinate
     ref_x = np.where((0 <= ref_xy[:, 0]) & (ref_xy[:, 0] < img_shape[1]), ref_xy[:, 0], -1)
-    #Replace for y coordinate
+    # Replace for y coordinate
     ref_y = np.where((0 <= ref_xy[:, 1]) & (ref_xy[:, 1] < img_shape[0]), ref_xy[:, 1], -1)
 
-    #Combine and return
+    # Combine and return
     return np.vstack([ref_x, ref_y]).T
 
 
-#Affine transformation
+# Affine transformation
 def affine(data, affine, draw_area_size):
     # data:Image data to be converted to affine
     # affine:Affine matrix
-    #:draw_area_size:It may be the same as or better than the shape of data
+    # :draw_area_size:It may be the same as or better than the shape of data
 
-    #Inverse matrix of affine matrix
+    # Inverse matrix of affine matrix
     inv_affine = np.linalg.inv(affine)
 
     x = np.arange(0, draw_area_size[1], 1)
@@ -50,18 +38,18 @@ def affine(data, affine, draw_area_size):
     XY = np.dstack([X, Y, np.ones_like(X)])
     xy = XY.reshape(-1, 3).T
 
-    #Calculation of reference coordinates
+    # Calculation of reference coordinates
     ref_xy = inv_affine @ xy
     ref_xy = ref_xy.T
 
-    #Coordinates around the reference coordinates
+    # Coordinates around the reference coordinates
     liner_xy = {}
     liner_xy['downleft'] = ref_xy[:, :2].astype(int)
     liner_xy['upleft'] = liner_xy['downleft'] + [1, 0]
     liner_xy['downright'] = liner_xy['downleft'] + [0, 1]
     liner_xy['upright'] = liner_xy['downleft'] + [1, 1]
 
-    #Weight calculation with linear interpolation
+    # Weight calculation with linear interpolation
     liner_diff = ref_xy[:, :2] - liner_xy['downleft']
 
     liner_weight = {}
@@ -70,7 +58,7 @@ def affine(data, affine, draw_area_size):
     liner_weight['downright'] = liner_diff[:, 0] * (1 - liner_diff[:, 1])
     liner_weight['upright'] = liner_diff[:, 0] * liner_diff[:, 1]
 
-    #Weight and add
+    # Weight and add
     liner_with_weight = {}
     for direction in liner_weight.keys():
         l_xy = liner_xy[direction]
@@ -81,18 +69,6 @@ def affine(data, affine, draw_area_size):
 
     data_linear = sum(liner_with_weight.values())
     return data_linear
-
-
-def get_angle(point_1, point_2):  # These can also be four parameters instead of two arrays
-    angle = atan2(point_2[1] - point_1[1], point_2[0] - point_1[0])
-
-    # Optional
-    angle = degrees(angle)
-
-    # OR
-    # angle = radians(angle)
-
-    return angle
 
 
 def alignImages(im1, im2):
@@ -150,7 +126,13 @@ def alignImages(im1, im2):
     for i, match in enumerate(matches):
 
         p2 = keypoints2[match.trainIdx].pt
-        angle = get_angle(list(keypoints1[match.queryIdx].pt), [p2[0] + 480, p2[1] + 480])
+
+        left_point = list(keypoints1[match.queryIdx].pt)
+        right_point = [p2[0], p2[1]]
+
+        angle = get_angle(left_point, right_point)
+
+        print(left_point, right_point, angle)
 
         if abs(angle) < 60:
             print(angle)
@@ -173,22 +155,23 @@ def alignImages(im1, im2):
 
     A_inv = np.linalg.inv(A)
 
-    img2 = cv2.merge([ndi.affine_transform(cim2[:, :, 0], A_inv),
-                      ndi.affine_transform(cim2[:, :, 1], A_inv),
-                      ndi.affine_transform(cim2[:, :, 2], A_inv)])
+    img2 = cv2.merge([ndi.affine_transform(cim1[:, :, 0], A_inv),
+                      ndi.affine_transform(cim1[:, :, 1], A_inv),
+                      ndi.affine_transform(cim1[:, :, 2], A_inv)])
     # img1 = affine(im2[:, :, 0], A, (480, 480))
 
-    cv2.imshow('Affine', img2)
+    cv2.imshow('Inverse Affine', img2)
 
     ########################################################################
 
     # Find homography
-    h, mask = cv2.findHomography(points1, points2, cv2.RANSAC)
-    print("Estimated Homography: \n", h)
+    H, mask = cv2.findHomography(points1, points2, cv2.RANSAC, 5.0)
+    print("Estimated Homography: \n", H)
 
     # Use homography
-    height, width, channels = cim2.shape
-    im1Reg = cv2.warpPerspective(cim2, h, (width, height))
+    height, width, channels = cim1.shape
+    im1Reg = cv2.warpPerspective(cim1, H, (width, height))
+    cv2.imshow('Homography', im1Reg)
 
     ########################################################################
 
@@ -204,19 +187,25 @@ def alignImages(im1, im2):
     image_starting = (int(new_pt1[0] - pt2[0]), 0)
     image_ending = (int(image_starting[0] + img2.shape[1]), int(image_starting[1] + img2.shape[0]))
 
-    img1 = cv2.merge([ndi.affine_transform(cim2[:, :, 0], A),
-                      ndi.affine_transform(cim2[:, :, 1], A),
-                      ndi.affine_transform(cim2[:, :, 2], A)])
+    img1 = cv2.merge([ndi.affine_transform(cim1[:, :, 0], A),
+                      ndi.affine_transform(cim1[:, :, 1], A),
+                      ndi.affine_transform(cim1[:, :, 2], A)])
 
-    final = np.zeros((480, 960, 3), dtype=np.uint8)
+    cv2.imshow("Affine", img1)
+
+    '''final = np.zeros((480, 960, 3), dtype=np.uint8)
     final[image_starting[1]: image_ending[1], image_starting[0]:image_ending[0]] = img1
-    final[:, :480] = cim1
+    final[:, :480] = cim1'''
+
+    dst = cv2.warpPerspective(cim2, H, (cim1.shape[1] + cim2.shape[1], cim2.shape[0]))
+    dst[0:cim2.shape[0], 0:cim2.shape[1]] = cim1
+    cv2.imshow('dst', dst)
 
     # final = cv2.rectangle(final, image_starting, image_ending, (0, 255, 255), 2)
 
-    cv2.imshow('Final', final)
+    # cv2.imshow('Final', final)
 
-    return im1Reg, h
+    return im1Reg, H
 
 
 if __name__ == '__main__':
@@ -227,7 +216,7 @@ if __name__ == '__main__':
     imReference = cv2.imread(refFilename, cv2.IMREAD_COLOR)
 
     # Read image to be aligned
-    imFilename = "images/1.png"
+    imFilename = "images/3.png"
     print("Reading image to align : ", imFilename)
     im = cv2.imread(imFilename, cv2.IMREAD_COLOR)
 
@@ -238,10 +227,10 @@ if __name__ == '__main__':
     print("Aligning images ...")
     # Registered image will be restored in imReg.
     # The estimated homography will be stored in h.
-    # imReg, h = alignImages(im, imReference)
-    # imReg = tailor.align(im, imReference)
-    stitched_image = tailor.stitch(im, imReference)
-    cv2.imshow('Stitched', stitched_image)
+    imReg, h = alignImages(im, imReference)
+
+    # stitched_image = tailor.stitch(im, imReference)
+    # cv2.imshow('Stitched', stitched_image)
 
     # Write aligned image to disk.
     outFilename = "aligned.jpg"

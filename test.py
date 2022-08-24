@@ -122,9 +122,9 @@ def stitch(left, right):
 
         M, mask = cv2.findHomography(src_pts, dst_pts, cv2.RANSAC, 5.0)
 
-        h, w = left.shape[0], left.shape[1]
-        pts = np.float32([[0, 0], [0, h - 1], [w - 1, h - 1], [w - 1, 0]]).reshape(-1, 1, 2)
-        dst = cv2.perspectiveTransform(pts, M)
+        #h, w = left.shape[0], left.shape[1]
+        #pts = np.float32([[0, 0], [0, h - 1], [w - 1, h - 1], [w - 1, 0]]).reshape(-1, 1, 2)
+        #dst = cv2.perspectiveTransform(pts, M)
         #img2 = cv2.polylines(right, [np.int32(dst)], True, (0, 255, 255), 2, cv2.LINE_AA)
         #cv2.imshow("original_image_overlapping.jpg", img2)
     else:
@@ -132,7 +132,7 @@ def stitch(left, right):
 
     dst = cv2.warpPerspective(left, M, (right.shape[1] + left.shape[1], right.shape[0]))
     cv2.imshow('dst', dst)
-    cv2.waitKey()
+    # cv2.waitKey()
     dst[0:right.shape[0], 0:right.shape[1]] = right
     cv2.imshow("original_image_stitched.jpg", dst)
 
@@ -152,11 +152,12 @@ def stitch(left, right):
         return frame
 
     cv2.imshow("original_image_stitched_crop.jpg", trim(dst))
+    cv2.imwrite("original_image_stitched_crop.jpg", trim(dst))
     cv2.waitKey()
 
 
-left = cv2.imread("images/0.png")
-right = cv2.imread("images/1.png")
+left = cv2.imread("images/24.png")
+right = cv2.imread("images/23.png")
 
 # left = left[:, :450]
 # right = right[:, :450]
