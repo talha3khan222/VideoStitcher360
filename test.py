@@ -108,6 +108,7 @@ cv2.waitKey()
 cv2.destroyAllWindows()'''
 
 import numpy as np
+from Utils.generals import registration, trim
 
 
 def stitch(left, right):
@@ -122,6 +123,16 @@ def stitch(left, right):
 
         M, mask = cv2.findHomography(src_pts, dst_pts, cv2.RANSAC, 5.0)
 
+        src_pts = src_pts[:, 0, :]
+        dst_pts = dst_pts[:, 0, :]
+
+        vec_one = np.ones((src_pts.shape[0], 1))
+        P = np.hstack([src_pts, vec_one])
+        x_dash = dst_pts[:, 0]
+        y_dash = dst_pts[:, 1]
+
+        A = registration(P, x_dash, y_dash)
+
         #h, w = left.shape[0], left.shape[1]
         #pts = np.float32([[0, 0], [0, h - 1], [w - 1, h - 1], [w - 1, 0]]).reshape(-1, 1, 2)
         #dst = cv2.perspectiveTransform(pts, M)
@@ -134,33 +145,20 @@ def stitch(left, right):
     cv2.imshow('dst', dst)
     # cv2.waitKey()
     dst[0:right.shape[0], 0:right.shape[1]] = right
-    cv2.imshow("original_image_stitched.jpg", dst)
-
-    def trim(frame):
-        # crop top
-        if not np.sum(frame[0]):
-            return trim(frame[1:])
-        # crop top
-        if not np.sum(frame[-1]):
-            return trim(frame[:-2])
-        # crop top
-        if not np.sum(frame[:, 0]):
-            return trim(frame[:, 1:])
-        # crop top
-        if not np.sum(frame[:, -1]):
-            return trim(frame[:, :-2])
-        return frame
+    # cv2.imshow("original_image_stitched.jpg", dst)
 
     cv2.imshow("original_image_stitched_crop.jpg", trim(dst))
     cv2.imwrite("original_image_stitched_crop.jpg", trim(dst))
     cv2.waitKey()
 
+    return M
 
-left = cv2.imread("images/24.png")
-right = cv2.imread("images/23.png")
+
+left = cv2.imread("images/1.png")
+right = cv2.imread("images/0.png")
 
 # left = left[:, :450]
-# right = right[:, :450]
+right = right[:, 20:450]
 
 stitch(left, right)
 

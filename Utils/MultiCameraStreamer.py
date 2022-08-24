@@ -3,33 +3,12 @@ import numpy as np
 from PIL import Image
 
 from Utils.Camera import Camera
-from imgstitch.utils import stitch_image_pair
-from Utils.StitchImages import StitchImages
-import multiprocessing
 import concurrent.futures
-from Utils.PanoramaBuilder import PanoramaBuilder
 from Utils.FeatureMatcher import FeatureMatcher
-
-import imutils
+from Utils.generals import trim
 
 
 current_frames = []
-
-
-def trim(frame):
-    # crop top
-    if not np.sum(frame[0]):
-        return trim(frame[1:])
-    # crop top
-    if not np.sum(frame[-1]):
-        return trim(frame[:-2])
-    # crop top
-    if not np.sum(frame[:, 0]):
-        return trim(frame[:, 1:])
-    # crop top
-    if not np.sum(frame[:, -1]):
-        return trim(frame[:, :-2])
-    return frame
 
 
 def stitch(left, right):
@@ -65,7 +44,7 @@ def stitch(left, right):
 
 
 class MultiCameraStreamer:
-    def __init__(self, streaming_sources=[], apply_stitching=True, stitching_direction=1, cam_parameters=[]):
+    def __init__(self, streaming_sources=[], apply_stitching=True, cam_parameters=[]):
         self._cameras = []
         for cam_idx, source in enumerate(streaming_sources):
             self._cameras.append(Camera(source, doUnwarp=True, doCrop=False, parameters=cam_parameters[cam_idx]))
@@ -73,12 +52,6 @@ class MultiCameraStreamer:
 
         self._keep_streaming = True
         self._apply_stitching = apply_stitching
-
-        self._stitching_direction = stitching_direction
-        self._images_stitcher = StitchImages()
-        self._pano_maker = PanoramaBuilder()
-        self._stitcher = cv2.Stitcher_create()
-        self._stitcher1 = cv2.Stitcher_create()
 
     def stream(self):
         while self._keep_streaming:
@@ -97,49 +70,7 @@ class MultiCameraStreamer:
             if self._apply_stitching:
                 try:
                     # self.do_stitching(frames)
-
-                    half1 = frames[1]
-                    half2 = frames[2]
-
-                    half_columns_count = round(half1.shape[1] / 2)
-
-                    q11, q12 = half1[:, :half_columns_count], half1[:, half_columns_count:]
-                    q21, q22 = half2[:, :half_columns_count], half2[:, half_columns_count:]
-
-                    q11 = cv2.resize(q11, (480, 480))
-                    q12 = cv2.resize(q12, (480, 480))
-
-                    q21 = cv2.resize(q21, (480, 480))
-                    q22 = cv2.resize(q22, (480, 480))
-
-                    cv2.imshow('q11', q11)
-                    cv2.imshow('q12', q12)
-
-                    cv2.imshow('q21', q21)
-                    cv2.imshow('q22', q22)
-
-                    status1, stitched1 = self._stitcher.stitch([q12, q21])
-                    status2, stitched2 = self._stitcher1.stitch([q22, q11])
-
-                    if status1 == 0:
-                        stitched1 = trim(stitched1)
-                        stitched1 = cv2.resize(stitched1, (480, 480))
-                        cv2.imwrite('Stitched Half 1.png', stitched1)
-                        cv2.imshow('Stitched Half 1', stitched1)
-
-                    if status2 == 0:
-                        stitched2 = trim(stitched2)
-                        stitched2 = cv2.resize(stitched2, (480, 480))
-                        cv2.imwrite('Stitched Half 2.png', stitched2)
-                        cv2.imshow('Stitched Half 2', stitched2)
-
-                    # (status, stitched) = self._stitcher.stitch(stitched_halves)
-                    if status1 == 0 and status2 == 0:
-                        stitched = cv2.hconcat([stitched2, stitched1])
-                        stitched = cv2.resize(stitched, (480 * 2, 480))
-                        stitched = trim(stitched)
-                        cv2.imwrite('stitched.png', stitched)
-                        cv2.imshow('Stitched', stitched)
+                    stitch(frames[3], frames[0])
 
                 except Exception as e:
                     print(e)
@@ -151,7 +82,7 @@ class MultiCameraStreamer:
             cam.release_handle()
         cv2.destroyAllWindows()
 
-    def do_stitching(self, frames):
+    '''def do_stitching(self, frames):
         stitched = None
 
         (status1, stitched1) = self._stitcher.stitch([frames[0], frames[1]])
@@ -201,6 +132,6 @@ class MultiCameraStreamer:
                 cv2.imwrite('stitched.png', stitched)
                 cv2.imshow('Stitched', stitched)
 
-        return stitched
+        return stitched'''
 
 

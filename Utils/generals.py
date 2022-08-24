@@ -1,6 +1,7 @@
 import cv2
 import numpy as np
 from math import atan2, degrees, radians
+from scipy import ndimage as ndi
 
 
 def find_cameras_indexes(count_looking_for=4):
@@ -25,7 +26,6 @@ def registration(P, x_dash, y_dash):
                               [0.0, 0.0, 1.0]])
     affine_matrix[0, :] = w1
     affine_matrix[1, :] = w2
-    print(affine_matrix)
     return affine_matrix
 
 
@@ -40,3 +40,39 @@ def get_angle(point_1, point_2):  # These can also be four parameters instead of
 
     return angle
 
+
+def trim(frame):
+    # crop top
+    if not np.sum(frame[0]):
+        return trim(frame[1:])
+    # crop top
+    if not np.sum(frame[-1]):
+        return trim(frame[:-2])
+    # crop top
+    if not np.sum(frame[:, 0]):
+        return trim(frame[:, 1:])
+    # crop top
+    if not np.sum(frame[:, -1]):
+        return trim(frame[:, :-2])
+    return frame
+
+
+def apply_homography(img, matrix, shape):
+    return cv2.warpPerspective(img, matrix, shape)
+
+
+def stitch(left, right, matrx):
+    dst = cv2.warpPerspective(left, matrx, (right.shape[1] + left.shape[1], right.shape[0]))
+    cv2.imshow('dst', dst)
+    # cv2.waitKey()
+    dst[0:right.shape[0], 0:right.shape[1]] = right
+
+    return trim(dst)
+
+
+def apply_affine_transformation(img, matrix):
+    transformed_image = cv2.merge([ndi.affine_transform(img[:, :, 0], matrix),
+                                   ndi.affine_transform(img[:, :, 1], matrix),
+                                   ndi.affine_transform(img[:, :, 2], matrix)])
+
+    return transformed_image

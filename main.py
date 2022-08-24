@@ -9,7 +9,7 @@ if __name__ == '__main__':
     cameras_count = 4
     # camera_sources = find_cameras_indexes(cameras_count)
     # print(camera_sources)
-    camera_sources = [0, 1, 2, 3]
+    camera_sources = [0, 3, 1, 2]
     if len(camera_sources) < cameras_count:
         print("Couldn't find the required number of cameras. Required Cameras Count was:", cameras_count)
     else:
@@ -26,7 +26,6 @@ if __name__ == '__main__':
 
         mc = MultiCameraStreamer(streaming_sources=camera_sources,
                                  apply_stitching=False,
-                                 stitching_direction=1,
                                  cam_parameters=all_camera_parameters)
         mc.stream()
 
