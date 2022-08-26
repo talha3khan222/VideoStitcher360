@@ -61,7 +61,7 @@ def apply_homography(img, matrix, shape):
     return cv2.warpPerspective(img, matrix, shape)
 
 
-def stitch(left, right, matrix):
+def combine_images(left, right, matrix):
     dst = cv2.warpPerspective(left, matrix, (right.shape[1] + left.shape[1], right.shape[0]))
     # cv2.imshow('dst', dst)
     # cv2.waitKey()

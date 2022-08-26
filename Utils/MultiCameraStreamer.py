@@ -5,7 +5,8 @@ from PIL import Image
 from Utils.Camera import Camera
 import concurrent.futures
 from Utils.FeatureMatcher import FeatureMatcher
-from Utils.generals import trim, stitch
+from Utils.generals import combine_images
+from Utils.Tailor import Tailor
 
 
 current_frames = []
@@ -53,6 +54,10 @@ class MultiCameraStreamer:
         self._keep_streaming = True
         self._apply_stitching = apply_stitching
 
+        self._tailor = Tailor()
+
+        self._combinations = {}
+
         self._transformation_matrices = []
         self._transformation_matrices.append(np.array([[ 8.69254188e-01, -1.20607271e-01,  2.46391392e+02],
                                                        [-5.89547012e-02,  8.49158430e-01,  5.96098177e+00],
@@ -79,10 +84,11 @@ class MultiCameraStreamer:
             if self._apply_stitching:
                 try:
                     # self.do_stitching(frames)
-                    stitched12 = stitch(frames[2], frames[1], self._transformation_matrices[1])
-                    stitched = stitch(stitched12, frames[0], self._transformation_matrices[0])
-                    cv2.imshow("Stitched", stitched)
-                    cv2.imwrite("stitched012.png", stitched)
+                    matching_image01 = self._tailor.display_matching_points(frames[0], frames[1])
+                    '''stitched12 = combine_images(frames[2], frames[1], self._transformation_matrices[1])
+                    stitched012 = combine_images(stitched12, frames[0], self._transformation_matrices[0])
+                    cv2.imshow("Stitched", stitched012)
+                    cv2.imwrite("stitched012.png", stitched012)'''
 
                 except Exception as e:
                     print(e)
