@@ -85,10 +85,17 @@ class MultiCameraStreamer:
                 try:
                     # self.do_stitching(frames)
                     matching_image01 = self._tailor.display_matching_points(frames[0], frames[1])
+                    matching_image12 = self._tailor.display_matching_points(frames[1], frames[2])
+                    matching_image23 = self._tailor.display_matching_points(frames[2], frames[3])
+                    matching_image30 = self._tailor.display_matching_points(frames[3], frames[0])
                     '''stitched12 = combine_images(frames[2], frames[1], self._transformation_matrices[1])
                     stitched012 = combine_images(stitched12, frames[0], self._transformation_matrices[0])
                     cv2.imshow("Stitched", stitched012)
                     cv2.imwrite("stitched012.png", stitched012)'''
+                    cv2.imshow("01", matching_image01)
+                    cv2.imshow("12", matching_image12)
+                    cv2.imshow("23", matching_image23)
+                    cv2.imshow("30", matching_image30)
 
                 except Exception as e:
                     print(e)

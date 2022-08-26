@@ -79,7 +79,7 @@ class Tailor:
         return final
 
     def display_matching_points(self, image1, image2):
-        p1, p2, imMatches = self._feature_matcher.get_sift_matching_points(image1, image2)
+        p1, p2, imMatches = self._feature_matcher.get_orb_matching_points(image1, image2)
         return imMatches
 
 

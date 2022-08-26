@@ -113,7 +113,7 @@ from Utils.generals import registration, trim
 
 def stitch(left, right):
     fm = FeatureMatcher()
-    src_pts, dst_pts = fm.get_sift_matching_points(left, right)
+    src_pts, dst_pts, imMatches = fm.get_sift_matching_points(left, right)
 
     if src_pts is None:
         return

@@ -23,7 +23,8 @@ class FeatureMatcher:
             raw_matches = self._knn_matcher.knnMatch(desc1, desc2, k=2)
             # raw_matches = self._matcher.radiusMatch(desc1, desc2, 2)
 
-            imMatches = cv2.drawMatches(image1, kp1, image2, kp2, raw_matches, None)
+            imMatches = None
+            # imMatches = cv2.drawMatches(image1, kp1, image2, kp2, raw_matches, None)
 
             good_matches = []
             # ensure the distance is within a certain ratio of each other (i.e. Lowe's ratio test)
