@@ -15,13 +15,15 @@ class FeatureMatcher:
         self._matching_threshold = 0.5
         self._minimum_matching_points = 3
 
-    def match_images(self, image1, image2):
+    def get_sift_matching_points(self, image1, image2):
         kp1, desc1 = self._sift_features_extractor.extract_features(image1)
         kp2, desc2 = self._sift_features_extractor.extract_features(image2)
 
         if desc1 is not None and desc2 is not None and len(desc1) >= 2 and len(desc2) >= 2:
             raw_matches = self._knn_matcher.knnMatch(desc1, desc2, k=2)
             # raw_matches = self._matcher.radiusMatch(desc1, desc2, 2)
+
+            imMatches = cv2.drawMatches(image1, kp1, image2, kp2, raw_matches, None)
 
             good_matches = []
             # ensure the distance is within a certain ratio of each other (i.e. Lowe's ratio test)
@@ -38,9 +40,9 @@ class FeatureMatcher:
             good_kps_1 = np.float32([kp1[m.queryIdx].pt for m in good_matches]).reshape(-1, 1, 2)
             good_kps_2 = np.float32([kp2[m.trainIdx].pt for m in good_matches]).reshape(-1, 1, 2)
 
-            return good_kps_1, good_kps_2
+            return good_kps_1, good_kps_2, imMatches
 
-    def get_matching_points(self, im1, im2):
+    def get_orb_matching_points(self, im1, im2, display_matches=False):
         cim1 = im1.copy()
         cim2 = im2.copy()
 
@@ -55,6 +57,8 @@ class FeatureMatcher:
         keypoints2, descriptors2 = self._orb_features_extractor.extract_features(im2)
 
         matches = self._bf_matcher.match(descriptors1, descriptors2, None)
+
+        imMatches = cv2.drawMatches(im1, keypoints1, im2, keypoints2, matches, None)
 
         # Sort matches by score
         list(matches).sort(key=lambda x: x.distance, reverse=False)
@@ -82,4 +86,4 @@ class FeatureMatcher:
         points1 = np.array(points1, dtype=np.float32)
         points2 = np.array(points2, dtype=np.float32)
 
-        return points1, points2
+        return points1, points2, imMatches

@@ -3,7 +3,7 @@ import numpy as np
 from scipy import ndimage as ndi
 
 from Utils.FeatureMatcher import FeatureMatcher
-from Utils.generals import registration, get_angle
+from Utils.generals import registration, get_angle, apply_homography ,apply_affine_transformation
 
 
 class Tailor:
@@ -13,7 +13,7 @@ class Tailor:
         self._image_points = None
 
     def align(self, img1, img2):
-        points1, points2 = self._feature_matcher.get_matching_points(img1, img2)
+        points1, points2, imMatches = self._feature_matcher.get_orb_matching_points(img1, img2)
 
         t_matrix = self.compute_transformations(points1, points2)
 
@@ -38,25 +38,15 @@ class Tailor:
 
         return transformation_matrix
 
-    def apply_homography(self, img, matrix, shape):
-        return cv2.warpPerspective(img, matrix, shape)
-
-    def apply_affine_transformation(self, img, matrix):
-        img2 = cv2.merge([ndi.affine_transform(img[:, :, 0], matrix),
-                          ndi.affine_transform(img[:, :, 1], matrix),
-                          ndi.affine_transform(img[:, :, 2], matrix)])
-
-        return img2
-
     def apply_transformations(self, img, transformation_matrix, shape):
         A_inv = np.linalg.inv(transformation_matrix["affine"])
-        transformed_images = {"homography": self.apply_homography(img, transformation_matrix["homography"], shape),
-                              "affine": self.apply_affine_transformation(img, A_inv)}
+        transformed_images = {"homography": apply_homography(img, transformation_matrix["homography"], shape),
+                              "affine": apply_affine_transformation(img, A_inv)}
 
         return transformed_images
 
     def calculate_required_parameters(self, img1, img2):
-        points1, points2 = self._feature_matcher.get_matching_points(img1, img2)
+        points1, points2 = self._feature_matcher.get_orb_matching_points(img1, img2)
 
         self._transformation_matrix = self.compute_transformations(points1, points2)
 
@@ -78,7 +68,7 @@ class Tailor:
         if self._transformation_matrix is None:
             self.calculate_required_parameters(img1, img2)
 
-        img = self.apply_affine_transformation(img2, self._transformation_matrix["affine"])
+        img = apply_affine_transformation(img2, self._transformation_matrix["affine"])
 
         final = np.zeros((480, 960, 3), dtype=np.uint8)
         final[self._image_points["starting"][1]: self._image_points["ending"][1],
@@ -88,5 +78,8 @@ class Tailor:
 
         return final
 
+    def display_matching_points(self, image1, image2):
+        p1, p2, imMatches = self._feature_matcher.get_sift_matching_points(image1, image2)
+        return imMatches
 
 

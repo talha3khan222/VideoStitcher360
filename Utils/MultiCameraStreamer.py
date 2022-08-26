@@ -5,13 +5,13 @@ from PIL import Image
 from Utils.Camera import Camera
 import concurrent.futures
 from Utils.FeatureMatcher import FeatureMatcher
-from Utils.generals import trim
+from Utils.generals import trim, stitch
 
 
 current_frames = []
 
 
-def stitch(left, right):
+'''def stitch(left, right):
     fm = FeatureMatcher()
     src_pts, dst_pts = fm.match_images(left, right)
 
@@ -40,7 +40,7 @@ def stitch(left, right):
     cv2.imshow("original_image_stitched_crop.jpg", trim(dst))
     # cv2.waitKey()
 
-    return trim(dst)
+    return trim(dst)'''
 
 
 class MultiCameraStreamer:
@@ -52,6 +52,15 @@ class MultiCameraStreamer:
 
         self._keep_streaming = True
         self._apply_stitching = apply_stitching
+
+        self._transformation_matrices = []
+        self._transformation_matrices.append(np.array([[ 8.69254188e-01, -1.20607271e-01,  2.46391392e+02],
+                                                       [-5.89547012e-02,  8.49158430e-01,  5.96098177e+00],
+                                                       [-5.30238586e-05, -3.77897860e-04,  1.00000000e+00]]))
+
+        self._transformation_matrices.append(np.array([[ 1.12078614e+00,  1.81963876e-01,  1.77567230e+02],
+                                                       [-7.91934894e-02,  1.08327569e+00,  5.99232166e+00],
+                                                       [ 1.20473453e-04,  1.09706471e-04,  1.00000000e+00]]))
 
     def stream(self):
         while self._keep_streaming:
@@ -70,7 +79,10 @@ class MultiCameraStreamer:
             if self._apply_stitching:
                 try:
                     # self.do_stitching(frames)
-                    stitch(frames[3], frames[0])
+                    stitched12 = stitch(frames[2], frames[1], self._transformation_matrices[1])
+                    stitched = stitch(stitched12, frames[0], self._transformation_matrices[0])
+                    cv2.imshow("Stitched", stitched)
+                    cv2.imwrite("stitched012.png", stitched)
 
                 except Exception as e:
                     print(e)

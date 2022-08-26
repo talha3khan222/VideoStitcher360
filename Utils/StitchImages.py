@@ -320,7 +320,7 @@ class StitchImages:
 
     def stitch(self, image1, image2, stitch_direction=1):
 
-        matches1, matches2 = self.features_matcher.match_images(image1, image2)
+        matches1, matches2 = self.features_matcher.get_sift_matching_points(image1, image2)
 
         if matches1 is None or matches2 is None:
             return None

@@ -113,7 +113,7 @@ from Utils.generals import registration, trim
 
 def stitch(left, right):
     fm = FeatureMatcher()
-    src_pts, dst_pts = fm.match_images(left, right)
+    src_pts, dst_pts = fm.get_sift_matching_points(left, right)
 
     if src_pts is None:
         return
@@ -142,6 +142,7 @@ def stitch(left, right):
         print("Not enough matches found", len(src_pts), MIN_MATCH_COUNT)
 
     dst = cv2.warpPerspective(left, M, (right.shape[1] + left.shape[1], right.shape[0]))
+    print(M)
     cv2.imshow('dst', dst)
     # cv2.waitKey()
     dst[0:right.shape[0], 0:right.shape[1]] = right
@@ -157,8 +158,8 @@ def stitch(left, right):
 left = cv2.imread("images/1.png")
 right = cv2.imread("images/0.png")
 
-# left = left[:, :450]
-right = right[:, 20:450]
+#left = left[:, :450]
+#right = right[:, 20:450]
 
 stitch(left, right)
 
