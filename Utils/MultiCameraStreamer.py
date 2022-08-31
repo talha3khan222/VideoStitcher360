@@ -48,7 +48,7 @@ class MultiCameraStreamer:
     def __init__(self, streaming_sources=[], apply_stitching=True, cam_parameters=[]):
         self._cameras = []
         for cam_idx, source in enumerate(streaming_sources):
-            self._cameras.append(Camera(source, doUnwarp=False, doCrop=False, parameters=cam_parameters[cam_idx]))
+            self._cameras.append(Camera(source, doUnwarp=True, doCrop=False, parameters=cam_parameters[cam_idx]))
             current_frames.append(None)
 
         self._keep_streaming = True
@@ -72,6 +72,11 @@ class MultiCameraStreamer:
             with concurrent.futures.ThreadPoolExecutor() as executor:
                 futures = [executor.submit(cam.grab_frame, "") for cam in self._cameras]
                 frames = [f.result() for f in futures]
+
+                h, w = frames[0].shape[0], frames[0].shape[1]
+
+                for i in range(1, len(frames)):
+                    frames[i] = cv2.resize(frames[i], (w, h))
 
             if not self._apply_stitching:
                 for index, frame in enumerate(frames):
