@@ -48,7 +48,7 @@ class MultiCameraStreamer:
     def __init__(self, streaming_sources=[], apply_stitching=True, cam_parameters=[]):
         self._cameras = []
         for cam_idx, source in enumerate(streaming_sources):
-            self._cameras.append(Camera(source, doUnwarp=True, doCrop=False, parameters=cam_parameters[cam_idx]))
+            self._cameras.append(Camera(source, doUnwarp=False, doCrop=False, parameters=cam_parameters[cam_idx]))
             current_frames.append(None)
 
         self._keep_streaming = True

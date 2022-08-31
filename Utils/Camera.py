@@ -9,8 +9,10 @@ class Camera:
         self._source = source
         self._capturing_handle = cv2.VideoCapture(self._source)
 
-        #self._capturing_handle.set(3, 1920)
-        #self._capturing_handle.set(4, 1080)
+        size = (1920, 1080)
+
+        self._capturing_handle.set(3, size[0])
+        self._capturing_handle.set(4, size[1])
         
         self._keep_streaming = True
         
@@ -20,6 +22,8 @@ class Camera:
         self._doCrop = doCrop
 
         self._parameters = parameters
+
+        self._parameters['mask'] = cv2.resize(self._parameters['mask'], size)
 
         white_indices = np.where(self._parameters['mask'][:, :, 0] == 255)
 
@@ -46,7 +50,7 @@ class Camera:
         frame = cv2.bitwise_and(frame, self._parameters['mask'])
         frame = frame[self._startX:self._endX, self._startY: self._endY]
 
-        frame = cv2.resize(frame, (480, 480))
+        # frame = cv2.resize(frame, (480, 480))
         
         if self._doUnwarp:
             cv2.imwrite("images/" + self._name + "_fisheye.png", frame)
@@ -67,7 +71,7 @@ class Camera:
         while self._keep_streaming:
             ret, frame = self._capturing_handle.read()
             if ret:
-                cv2.imshow('frame', frame)
+                cv2.imshow(self.get_name(), frame)
             else:
                 print("Nothing")
 
