@@ -89,18 +89,29 @@ class MultiCameraStreamer:
             if self._apply_stitching:
                 try:
                     # self.do_stitching(frames)
-                    matching_image01 = self._tailor.display_matching_points(frames[0], frames[1])
-                    matching_image12 = self._tailor.display_matching_points(frames[1], frames[2])
-                    matching_image23 = self._tailor.display_matching_points(frames[2], frames[3])
-                    matching_image30 = self._tailor.display_matching_points(frames[3], frames[0])
-                    '''stitched12 = combine_images(frames[2], frames[1], self._transformation_matrices[1])
-                    stitched012 = combine_images(stitched12, frames[0], self._transformation_matrices[0])
-                    cv2.imshow("Stitched", stitched012)
-                    cv2.imwrite("stitched012.png", stitched012)'''
-                    cv2.imshow("01", matching_image01)
-                    cv2.imshow("12", matching_image12)
-                    cv2.imshow("23", matching_image23)
-                    cv2.imshow("30", matching_image30)
+
+                    '''stitched23 = combine_images(frames[3], frames[2], self._transformation_matrices[2])
+                    stitched12 = combine_images(frames[2], frames[1], self._transformation_matrices[1])
+                    stitched01 = combine_images(frames[1], frames[0], self._transformation_matrices[0])
+
+                    stitched123 = combine_images(stitched23, frames[1], self._transformation_matrices[0])
+                    stitched0123 = combine_images(stitched123, frames[0], self._transformation_matrices[0])
+
+                    cv2.imshow("Stitched01", stitched01)
+                    cv2.imshow("Stitched23", stitched23)
+
+                    cv2.imshow("Stitched012", stitched012)
+                    cv2.imshow("Stitched0123", stitched0123)'''
+
+                    m1 = self.stitch_halves(frames[0], frames[2])
+                    # m2 = cv2.hconcat((frames[1], frames[3]))
+
+                    cv2.imshow("Merged1", m1)
+                    # cv2.imshow("Merged2", m2)
+
+                    # match_and_stitch(frames[1], frames[0])
+
+                    # cv2.imshow("012", stitched012)
 
                 except Exception as e:
                     print(e)
@@ -111,6 +122,17 @@ class MultiCameraStreamer:
         for cam in self._cameras:
             cam.release_handle()
         cv2.destroyAllWindows()
+
+    def stitch_halves(self, half1, half2):
+        half_columns_count = round(half1.shape[1] / 2)
+        q1, q2 = half1[:, :half_columns_count], half1[:, half_columns_count:]
+
+        cv2.imwrite("images/q1.png", q1)
+        cv2.imwrite("images/q2.png", q2)
+
+        merged = cv2.hconcat((q2, half2, q1))
+
+        return merged
 
     '''def do_stitching(self, frames):
         stitched = None

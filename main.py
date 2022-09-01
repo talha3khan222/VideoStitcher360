@@ -9,7 +9,7 @@ if __name__ == '__main__':
     cameras_count = 4
     # camera_sources = find_cameras_indexes(cameras_count)
     # print(camera_sources)
-    camera_sources = [1, 4, 3, 2]
+    camera_sources = [1, 3, 4, 2]
     if len(camera_sources) < cameras_count:
         print("Couldn't find the required number of cameras. Required Cameras Count was:", cameras_count)
     else:
@@ -25,7 +25,7 @@ if __name__ == '__main__':
             all_camera_parameters = pickle.load(pf)
 
         mc = MultiCameraStreamer(streaming_sources=camera_sources,
-                                 apply_stitching=False,
+                                 apply_stitching=True,
                                  cam_parameters=all_camera_parameters)
         mc.stream()
 

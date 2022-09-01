@@ -9,7 +9,7 @@ class Camera:
         self._source = source
         self._capturing_handle = cv2.VideoCapture(self._source)
 
-        size = (800, 600)
+        size = (640, 480)
 
         self._capturing_handle.set(3, size[0])
         self._capturing_handle.set(4, size[1])
