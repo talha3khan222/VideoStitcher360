@@ -67,6 +67,15 @@ class MultiCameraStreamer:
                                                        [-7.91934894e-02,  1.08327569e+00,  5.99232166e+00],
                                                        [ 1.20473453e-04,  1.09706471e-04,  1.00000000e+00]]))
 
+        self._transformations = []
+        self._transformations.append(np.array([[0.96761879, -0.29169015, -135.20440722],
+                                               [0.35775928, 0.94956671, -68.98758327],
+                                               [0, 0, 1]]))
+
+        self._transformations.append(np.array([[2.05597958e+00, -8.07220465e-01, -7.82495187e+02],
+                                               [3.44762056e-01,  9.70113636e-01, -1.44046912e+02],
+                                              [0.00000000e+00,  0.00000000e+00,  1.00000000e+00]]))
+
     def stream(self):
         while self._keep_streaming:
             with concurrent.futures.ThreadPoolExecutor() as executor:
@@ -130,9 +139,12 @@ class MultiCameraStreamer:
         cv2.imwrite("images/q1.png", q1)
         cv2.imwrite("images/q2.png", q2)
 
-        merged = cv2.hconcat((q2, half2, q1))
+        right_stitched = combine_images(q1, half2, np.linalg.inv(self._transformations[1]))
+        stitched = combine_images(right_stitched, q2, np.linalg.inv(self._transformations[0]))
 
-        return merged
+        # merged = cv2.hconcat((q2, half2, q1))
+
+        return stitched
 
     '''def do_stitching(self, frames):
         stitched = None

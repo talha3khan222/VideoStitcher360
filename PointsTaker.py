@@ -45,20 +45,20 @@ right = cv2.imread("images/q1.png")
 width = left.shape[1] + right.shape[1]
 height = left.shape[0]
 
-right = cv2.resize(right, (left.shape[1], left.shape[0]))
+right = cv2.resize(right, (max([left.shape[1], right.shape[1]]), left.shape[0]))
 
-# src_pts, ref_pts = get_four_points(left, right)
+src_pts, ref_pts = get_four_points(left, right)
 
-# tform, status = cv2.findHomography(src_pts, ref_pts)
-tform = np.array([[ 3.72578228e-01, -1.64889511e-01, -2.90926637e+01],
+tform, status = cv2.findHomography(src_pts, ref_pts)
+'''tform = np.array([[ 3.72578228e-01, -1.64889511e-01, -2.90926637e+01],
                   [-9.71337367e-02,  4.53838987e-01,  4.89881873e+01],
-                  [-1.00823278e-03, -3.91080682e-04,  1.00000000e+00]])
+                  [-1.00823278e-03, -3.91080682e-04,  1.00000000e+00]])'''
 
-# A = compute_affine_transformation(src_pts, ref_pts)
+A = compute_affine_transformation(src_pts, ref_pts)
 
-A = np.array([[ 2.07098001e+00, -7.74358795e-01, -7.85347120e+02],
+'''A = np.array([[ 2.07098001e+00, -7.74358795e-01, -7.85347120e+02],
               [ 3.96727382e-01,  9.31403840e-01, -1.62089883e+02],
-              [ 0.00000000e+00,  0.00000000e+00,  1.00000000e+00]])
+              [ 0.00000000e+00,  0.00000000e+00,  1.00000000e+00]])'''
 
 print(tform)
 print(A)
