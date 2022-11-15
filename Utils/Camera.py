@@ -1,6 +1,7 @@
 import cv2
 from Utils.DeFisheye import DeFishEye
 import numpy as np
+from Utils.generals import rotate_image
 
 
 class Camera:
@@ -23,17 +24,20 @@ class Camera:
 
         self._parameters = parameters
 
-        self._parameters['mask'] = cv2.resize(self._parameters['mask'], size)
+        if self._parameters is not None:
+            self._parameters['mask'] = cv2.resize(self._parameters['mask'], size)
 
-        white_indices = np.where(self._parameters['mask'][:, :, 0] == 255)
+            white_indices = np.where(self._parameters['mask'][:, :, 0] == 255)
 
-        self._startX = min(white_indices[0])
-        self._startY = min(white_indices[1])
+            self._startX = min(white_indices[0])
+            self._startY = min(white_indices[1])
 
-        self._endX = max(white_indices[0])
-        self._endY = max(white_indices[1])
+            self._endX = max(white_indices[0])
+            self._endY = max(white_indices[1])
 
         self.frame_size = None
+
+        self.current_frame = np.zeros((size[1], size[0]), dtype=np.uint8)
 
     def get_name(self):
         return self._name
@@ -41,14 +45,18 @@ class Camera:
     def release_handle(self):
         self._capturing_handle.release()
 
-    def grab_frame(self, ret_value):
+    def grab_frame(self, ret_value=True):
         ret, frame = self._capturing_handle.read()
 
         if not ret:
             return None
 
-        frame = cv2.bitwise_and(frame, self._parameters['mask'])
-        frame = frame[self._startX:self._endX, self._startY: self._endY]
+        # frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+        frame = rotate_image(frame, 180)
+
+        if self._parameters is not None and False:
+            frame = cv2.bitwise_and(frame, self._parameters['mask'])
+            frame = frame[self._startX:self._endX, self._startY: self._endY]
 
         # frame = cv2.resize(frame, (480, 480))
         
@@ -65,6 +73,7 @@ class Camera:
 
             frame = self._defish.unwarp(frame, self._doCrop)
 
+        # frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
         return frame
 
     def stream(self):
@@ -78,4 +87,28 @@ class Camera:
             key = cv2.waitKey(1)
             if key == ord('q'):
                 self._keep_streaming = False
+
+
+
+'''c = Camera(1, False, False, None)
+frame = c.grab_frame()
+
+print(frame.shape)
+
+import matplotlib.pyplot as plt
+from matplotlib.animation import FuncAnimation
+
+#create axes
+ax1 = plt.subplot(111)
+
+#create axes
+im1 = ax1.imshow(c.grab_frame())
+
+
+def update(i):
+    im1.set_data(c.grab_frame())
+
+
+ani = FuncAnimation(plt.gcf(), update, interval=0.0200)
+plt.show()'''
 

@@ -5,8 +5,8 @@ from PIL import Image
 from Utils.Camera import Camera
 import concurrent.futures
 from Utils.FeatureMatcher import FeatureMatcher
-from Utils.generals import combine_images
-from Utils.Tailor import Tailor
+from Utils.generals import combine_images, trim
+# from Utils.Tailor import Tailor
 
 
 current_frames = []
@@ -48,24 +48,25 @@ class MultiCameraStreamer:
     def __init__(self, streaming_sources=[], apply_stitching=True, cam_parameters=[]):
         self._cameras = []
         for cam_idx, source in enumerate(streaming_sources):
-            self._cameras.append(Camera(source, doUnwarp=True, doCrop=False, parameters=cam_parameters[cam_idx]))
+            self._cameras.append(Camera(source, doUnwarp=False, doCrop=False, parameters=cam_parameters[cam_idx]))
             current_frames.append(None)
 
         self._keep_streaming = True
         self._apply_stitching = apply_stitching
 
-        self._tailor = Tailor()
+        # self._tailor = Tailor()
+        self._stitcher = cv2.Stitcher_create()
 
         self._combinations = {}
 
         self._transformation_matrices = []
-        self._transformation_matrices.append(np.array([[ 8.69254188e-01, -1.20607271e-01,  2.46391392e+02],
-                                                       [-5.89547012e-02,  8.49158430e-01,  5.96098177e+00],
-                                                       [-5.30238586e-05, -3.77897860e-04,  1.00000000e+00]]))
+        self._transformation_matrices.append(np.array([[ 4.94666047e+00,  2.41170928e-01, -2.38876244e+03],
+                                                       [ 1.03375334e+00,  4.54913411e+00, -9.31887226e+02],
+                                                       [ 5.57908324e-03,  8.48213933e-04,  1.00000000e+00]]))
 
-        self._transformation_matrices.append(np.array([[ 1.12078614e+00,  1.81963876e-01,  1.77567230e+02],
-                                                       [-7.91934894e-02,  1.08327569e+00,  5.99232166e+00],
-                                                       [ 1.20473453e-04,  1.09706471e-04,  1.00000000e+00]]))
+        self._transformation_matrices.append(np.array([[ 2.48237478e+00,  8.67674767e-02, -1.06397831e+03],
+                                                       [ 4.26131976e-01,  1.98877399e+00, -1.58140696e+02],
+                                                       [ 2.49989557e-03, -3.50564156e-04,  1.00000000e+00]]))
 
         self._transformations = []
         self._transformations.append(np.array([[0.96761879, -0.29169015, -135.20440722],
@@ -99,6 +100,15 @@ class MultiCameraStreamer:
                 try:
                     # self.do_stitching(frames)
 
+                    stitched12 = combine_images(frames[2], frames[1], np.linalg.inv(self._transformation_matrices[1]))
+                    stitched01 = combine_images(stitched12, frames[0], np.linalg.inv(self._transformation_matrices[0]))
+
+                    res = cv2.resize(stitched01, (1240, 480))
+
+                    #cv2.imshow("Merged01", stitched01)
+                    #cv2.imshow("Merged12", stitched12)
+                    cv2.imshow("Res", res)
+
                     '''stitched23 = combine_images(frames[3], frames[2], self._transformation_matrices[2])
                     stitched12 = combine_images(frames[2], frames[1], self._transformation_matrices[1])
                     stitched01 = combine_images(frames[1], frames[0], self._transformation_matrices[0])
@@ -112,10 +122,10 @@ class MultiCameraStreamer:
                     cv2.imshow("Stitched012", stitched012)
                     cv2.imshow("Stitched0123", stitched0123)'''
 
-                    m1 = self.stitch_halves(frames[0], frames[2])
+                    # m1 = self.stitch_halves(frames[0], frames[2])
                     # m2 = cv2.hconcat((frames[1], frames[3]))
 
-                    cv2.imshow("Merged1", m1)
+                    # cv2.imshow("Merged1", m1)
                     # cv2.imshow("Merged2", m2)
 
                     # match_and_stitch(frames[1], frames[0])
@@ -146,10 +156,10 @@ class MultiCameraStreamer:
 
         return stitched
 
-    '''def do_stitching(self, frames):
+    def do_stitching(self, frames):
         stitched = None
 
-        (status1, stitched1) = self._stitcher.stitch([frames[0], frames[1]])
+        (status1, stitched1) = self._stitcher.stitch(frames)
         (status2, stitched2) = self._stitcher.stitch([frames[2], frames[3]])
 
         if status1 == 0:
@@ -163,7 +173,7 @@ class MultiCameraStreamer:
             cv2.imwrite('Half2.png', stitched2)
             cv2.imshow('Half 2', stitched2)
 
-        if status1 == 0 and status2 == 0:
+        '''if status1 == 0 and status2 == 0:
             half_columns_count = round(stitched2.shape[1] / 2)
 
             stitched_halves = [stitched2[:, :half_columns_count],
@@ -194,8 +204,8 @@ class MultiCameraStreamer:
                 stitched = cv2.resize(stitched, (480 * 2, 480))
                 stitched = trim(stitched)
                 cv2.imwrite('stitched.png', stitched)
-                cv2.imshow('Stitched', stitched)
+                cv2.imshow('Stitched', stitched)'''
 
-        return stitched'''
+        return stitched
 
 

@@ -87,4 +87,4 @@ class FeatureMatcher:
         points1 = np.array(points1, dtype=np.float32)
         points2 = np.array(points2, dtype=np.float32)
 
-        return points1, points2, imMatches
+        return points1, points2

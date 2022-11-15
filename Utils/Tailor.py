@@ -69,6 +69,8 @@ class Tailor:
             self.calculate_required_parameters(img1, img2)
 
         img = apply_affine_transformation(img2, self._transformation_matrix["affine"])
+        cv2.imshow('img', img)
+        cv2.waitKey()
 
         final = np.zeros((480, 960, 3), dtype=np.uint8)
         final[self._image_points["starting"][1]: self._image_points["ending"][1],
@@ -83,3 +85,15 @@ class Tailor:
         return imMatches
 
 
+t = Tailor()
+left = cv2.imread("../images/0.png")
+right = cv2.imread("../images/1.png")
+
+left = cv2.resize(left, (right.shape[1], right.shape[0]))
+
+st = t.stitch(left, right)
+
+cv2.imshow('stitched', st)
+cv2.waitKey()
+
+cv2.destroyAllWindows()

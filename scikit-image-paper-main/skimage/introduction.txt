@@ -1,0 +1,285 @@
+In our data-rich world, images represent a significant subset of all
+measurements made. Examples include DNA microarrays, microscopy slides,
+astronomical observations, satellite maps, robotic vision capture, synthetic
+aperture radar images, and higher-dimensional images such as 3-D magnetic
+resonance or computed tomography imaging. Exploring these rich data sources
+requires sophisticated software tools that should be easy to use, free of
+charge and restrictions, and able to address all the challenges posed by such a
+diverse field of analysis.
+
+This paper describes scikit-image, a collection of image processing algorithms
+implemented in the Python programming language by an active community of
+volunteers and available under the liberal BSD Open Source license.
+The rising popularity of Python as a scientific programming language,
+together with the increasing availability of a large eco-system of
+complementary tools, make it an ideal environment in which to produce
+an image processing toolkit.
+
+The project aims are:
+
+1. To provide high quality, well-documented and easy-to-use
+   implementations of common image processing algorithms.
+
+   Such algorithms are essential building blocks in many areas of scientific
+   research, algorithmic comparisons and data exploration. In the
+   context of reproducible science, it is important to be able to inspect any
+   source code used for algorithmic flaws or mistakes. Additionally, scientific
+   research often requires custom modification of standard algorithms, further
+   emphasizing the importance of open source.
+
+2. To facilitate education in image processing.
+
+   The library allows students in image processing to learn algorithms in a
+   hands-on fashion by adjusting parameters and modifying code. In addition, a
+   ``novice`` module is provided, not only for teaching programming in the
+   "turtle graphics" paradigm, but also to familiarize users with image
+   concepts such as color and dimensionality. Furthermore, the project
+   takes part in the yearly Google Summer of Code program [gsoc]_, where
+   students learn about image processing and software engineering through
+   contributing to the project.
+
+3. To address industry challenges.
+
+   High quality reference implementations of trusted algorithms provide
+   industry with a reliable way of attacking problems, without having to expend
+   significant energy in re-implementing algorithms already available in
+   commercial packages.  Companies may use the library entirely free of charge,
+   and have the option of contributing changes back, should they so wish.
+
+
+Getting started
+===============
+
+One of the main goals of scikit-image is to make it easy for any user to get
+started quickly—especially users already familiar with Python's
+scientific tools. To that end, the basic image is just a standard NumPy array,
+which exposes pixel data directly to the user. A new user can simply the load
+an image from disk (or use one of scikit-image's sample images), process that
+image with one or more image filters, and quickly display the results:
+
+.. code-block:: python
+
+   from skimage import data, io, filter
+
+   image = data.coins()  # or any NumPy array!
+   edges = filter.sobel(image)
+   io.imshow(edges)
+
+
+.. figure:: getting_started.png
+
+    Illustration of several functions available in scikit-image: adaptive threshold,
+    local maxima, edge detection and labels. The use of NumPy arrays as our
+    data container also enables the use of NumPy's built-in ``histogram``
+    function.
+    :label:`gettingstarted`
+
+The above demonstration loads ``data.coins``, an example image shipped with
+scikit-image.  For a more complete example, we import NumPy for array
+manipulation and matplotlib for plotting.  At each step, we add the picture or
+the plot to a matplotlib figure shown in Figure :ref:`gettingstarted`.
+
+
+.. code-block:: python
+
+    import numpy as np
+    import matplotlib.pyplot as plt
+
+    # Load a small section of the image.
+    image = data.coins()[0:95, 70:370]
+
+    fig, axes = plt.subplots(ncols=2, nrows=3,
+                             figsize=(8, 4))
+    ax0, ax1, ax2, ax3, ax4, ax5  = axes.flat
+    ax0.imshow(image, cmap=plt.cm.gray)
+    ax0.set_title('Original', fontsize=24)
+    ax0.axis('off')
+
+
+Since the image is represented by a NumPy array, we can easily perform
+operations such as building an histogram of the intensity values.
+
+.. code-block:: python
+
+    # Histogram.
+    values, bins = np.histogram(image,
+                                bins=np.arange(256))
+
+    ax1.plot(bins[:-1], values, lw=2, c='k')
+    ax1.set_xlim(xmax=256)
+    ax1.set_yticks([0, 400])
+    ax1.set_aspect(.2)
+    ax1.set_title('Histogram', fontsize=24)
+
+
+To divide the foreground and background, we threshold the image to produce
+a binary image.  Several threshold algorithms are available. Here, we
+employ ``filter.threshold_adaptive`` where the threshold value is the weighted
+mean for the local neighborhood of a pixel.
+
+.. code-block:: python
+
+    # Apply threshold.
+    from skimage.filter import threshold_adaptive
+
+    bw = threshold_adaptive(image, 95, offset=-15)
+
+    ax2.imshow(bw, cmap=plt.cm.gray)
+    ax2.set_title('Adaptive threshold', fontsize=24)
+    ax2.axis('off')
+
+We can easily detect interesting features, such as local maxima and edges. The
+function ``feature.peak_local_max`` can be used to return the coordinates of
+local maxima in an image.
+
+.. code-block:: python
+
+    # Find maxima.
+    from skimage.feature import peak_local_max
+
+    coordinates = peak_local_max(image, min_distance=20)
+
+    ax3.imshow(image, cmap=plt.cm.gray)
+    ax3.autoscale(False)
+    ax3.plot(coordinates[:, 1],
+             coordinates[:, 0], 'r.')
+    ax3.set_title('Peak local maxima', fontsize=24)
+    ax3.axis('off')
+
+Next, a Canny filter (``filter.canny``) [Canny]_ detects the edge of each coin.
+
+.. code-block:: python
+
+    # Detect edges.
+    from skimage import filter
+
+    edges = filter.canny(image, sigma=3,
+                         low_threshold=10,
+                         high_threshold=80)
+
+    ax4.imshow(edges, cmap=plt.cm.gray)
+    ax4.set_title('Edges', fontsize=24)
+    ax4.axis('off')
+
+
+Then, we attribute to each coin a label (``morphology.label``) that can be used
+to extract a sub-picture. Finally, physical information such as the position,
+area, eccentricity, perimeter, and moments can be extracted using
+``measure.regionprops``.
+
+.. code-block:: python
+
+    # Label image regions.
+    from skimage.measure import regionprops
+    import matplotlib.patches as mpatches
+    from skimage.morphology import label
+
+    label_image = label(edges)
+
+    ax5.imshow(image, cmap=plt.cm.gray)
+    ax5.set_title('Labeled items', fontsize=24)
+    ax5.axis('off')
+
+    for region in regionprops(label_image):
+        # Draw rectangle around segmented coins.
+        minr, minc, maxr, maxc = region.bbox
+        rect = mpatches.Rectangle((minc, minr),
+                                  maxc - minc,
+                                  maxr - minr,
+                                  fill=False,
+                                  edgecolor='red',
+                                  linewidth=2)
+        ax5.add_patch(rect)
+
+    plt.tight_layout()
+    plt.show()
+
+
+scikit-image thus makes it possible to perform sophisticated image
+processing tasks with only a few function calls.
+
+
+Library contents
+================
+
+The scikit-image project started in August of 2009 and has received
+contributions from more than 100 individuals [ohloh]_.  The package can be
+installed from, amongst other sources, the Python Package Index, Continuum
+Anaconda [anaconda]_, Enthought Canopy [canopy]_, Python(x,y) [pythonxy]_,
+NeuroDebian [neurodebian]_ and GNU/Linux distributions such as Ubuntu [ubuntu]_.
+In March 2014 alone, the package was downloaded more than 5000 times from the
+Python Package Index [pypi]_.
+
+The package currently contains the following sub-modules:
+
+- color: Color space conversion.
+- data: Test images and example data.
+- draw: Drawing primitives (lines, text, etc.) that operate on NumPy arrays.
+- exposure:  Image intensity adjustment, e.g., histogram equalization, etc.
+- feature: Feature detection and extraction, e.g., texture analysis, corners, etc.
+- filter: Sharpening, edge finding, rank filters, thresholding, etc.
+- graph: Graph-theoretic operations, e.g., shortest paths.
+- io: Reading, saving, and displaying images and video.
+- measure: Measurement of image properties, e.g., similarity and contours.
+- morphology: Morphological operations, e.g., opening or skeletonization.
+- novice: Simplified interface for teaching purposes.
+- restoration: Restoration algorithms, e.g., deconvolution algorithms, denoising, etc.
+- segmentation: Partitioning an image into multiple regions.
+- transform: Geometric and other transforms, e.g., rotation or the Radon transform.
+- viewer: A simple graphical user interface for visualizing results and exploring parameters.
+
+Data format and pipelining
+==========================
+
+scikit-image represents images as NumPy arrays [numpy]_, the de facto standard
+for storage of multi-dimensional data in scientific Python. Each array has a
+dimensionality, such as 2 for a 2-D grayscale image, 3 for a 2-D multi-
+channel image, or 4 for a 3-D multi-channel image; a shape, such as $(M, N, 3)$
+for an RGB color image with $M$ vertical and $N$ horizontal pixels; and a
+numeric data type, such as ``float`` for continuous-valued pixels and ``uint8``
+for 8-bit pixels. Our use of NumPy arrays as the fundamental data structure
+maximizes compatibility with the rest of the scientific Python ecosystem.
+Data can be passed as-is to other tools such as NumPy, SciPy, matplotlib,
+scikit-learn [scikit-learn]_, Mahotas [Mahotas]_, OpenCV, and more.
+
+Images of differing data-types can complicate the construction of pipelines.
+scikit-image follows an "Anything In, Anything Out" approach, whereby all
+functions are expected to allow input of an arbitrary data-type but, for
+efficiency, also get to choose their own output format. Data-type
+ranges are clearly defined. Floating point images are expected to have
+values between 0 and 1 (unsigned images) or -1 and 1 (signed images), while
+8-bit images are expected to have values in {0, 1, 2, ..., 255}. We provide
+utility functions, such as ``img_as_float``, to easily convert between
+data-types.
+
+
+.. [ohloh] Scikit-image on Ohloh, https://www.ohloh.net/p/scikit-image
+.. [numpy] van der Walt S, Colbert CS, and Varoquaux G, 2011. "The NumPy
+   array: a structure for efficient numerical computation", Computing in
+   Science & Engineering 13(2):22-30.
+.. [ipython] Pérez F, and Granger BE, 2007. IPython: A System for
+   Interactive Scientific Computing, Computing in Science and Engineering,
+   9(3):21-29. doi:10.1109/MCSE.2007.53.
+.. [Mahotas] Coelho, L.P. 2013. Mahotas: Open source software for scriptable
+   computer vision. Journal of Open Research Software 1(1),
+   DOI: http://dx.doi.org/10.5334/4 
+.. [scikit-learn] Pedregosa F, Varoquaux G, Gramfort A, Michel V, Thirion B,
+   Grisel O, Blondel M, Prettenhofer P, Weiss R, Dubourg V, Vanderplas J,
+   Passos A, Cournapeau D, Brucher M, Perrot M, and Duchesnay E, 2011.
+   Scikit-learn: machine learning in Python. Journal of Machine Learning
+   Research 12:2825-2830.
+.. [pypi] scikit-image 0.9.3 at the Python Package Index.
+   https://pypi.python.org/pypi/scikit-image
+.. [anaconda] The Anaconda Scientific Python Distribution.
+   https://store.continuum.io/cshop/anaconda/
+.. [canopy] Enthought Canopy.
+   https://www.enthought.com/products/canopy/
+.. [pythonxy] Python(x,y). https://code.google.com/p/pythonxy/
+.. [neurodebian] python-skimage at NeuroDebian.
+   http://neuro.debian.net/pkgs/python-skimage.html
+.. [ubuntu] python-skimage in Ubuntu.
+   http://packages.ubuntu.com/search?keywords=python-skimage
+.. [gsoc] Google Summer of Code.
+   https://developers.google.com/open-source/soc
+.. [Canny] Canny J, 1986. A Computational Approach To Edge Detection. IEEE
+   Trans. Pattern Analysis and Machine Intelligence 8:679-714

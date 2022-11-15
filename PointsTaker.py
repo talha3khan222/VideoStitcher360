@@ -40,14 +40,17 @@ def get_four_points(im, imRef):
 
 
 left = cv2.imread("images/2.png")
-right = cv2.imread("images/q1.png")
+right = cv2.imread("images/3.png")
 
 width = left.shape[1] + right.shape[1]
 height = left.shape[0]
 
-right = cv2.resize(right, (max([left.shape[1], right.shape[1]]), left.shape[0]))
+# right = cv2.resize(right, (max([left.shape[1], right.shape[1]]), left.shape[0]))
 
 src_pts, ref_pts = get_four_points(left, right)
+
+print(src_pts)
+print(ref_pts)
 
 tform, status = cv2.findHomography(src_pts, ref_pts)
 '''tform = np.array([[ 3.72578228e-01, -1.64889511e-01, -2.90926637e+01],
