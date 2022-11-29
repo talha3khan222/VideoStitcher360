@@ -39,32 +39,28 @@ def get_four_points(im, imRef):
     return points, pointsRef
 
 
-left = cv2.imread("images/2.png")
-right = cv2.imread("images/3.png")
+from Utils.FeatureMatcher import FeatureMatcher
 
-width = left.shape[1] + right.shape[1]
-height = left.shape[0]
+
+left = cv2.imread("images/0.png")
+right = cv2.imread("images/1.png")
 
 # right = cv2.resize(right, (max([left.shape[1], right.shape[1]]), left.shape[0]))
 
+flipped_left = cv2.flip(left, 1)
+left = cv2.flip(right, 1)
+
+right = flipped_left
+
+
 src_pts, ref_pts = get_four_points(left, right)
 
-print(src_pts)
-print(ref_pts)
-
 tform, status = cv2.findHomography(src_pts, ref_pts)
-'''tform = np.array([[ 3.72578228e-01, -1.64889511e-01, -2.90926637e+01],
-                  [-9.71337367e-02,  4.53838987e-01,  4.89881873e+01],
-                  [-1.00823278e-03, -3.91080682e-04,  1.00000000e+00]])'''
 
 A = compute_affine_transformation(src_pts, ref_pts)
 
-'''A = np.array([[ 2.07098001e+00, -7.74358795e-01, -7.85347120e+02],
-              [ 3.96727382e-01,  9.31403840e-01, -1.62089883e+02],
-              [ 0.00000000e+00,  0.00000000e+00,  1.00000000e+00]])'''
-
-print(tform)
-print(A)
+print("Homography : ", tform)
+print("Affine Transformation : ", A)
 
 cv2.imshow("im_H", combine_images(right, left, np.linalg.inv(tform)))
 cv2.imshow("im_A", combine_images(right, left, np.linalg.inv(A)))

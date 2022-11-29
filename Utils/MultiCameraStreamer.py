@@ -43,6 +43,8 @@ current_frames = []
 
     return trim(dst)'''
 
+fm = FeatureMatcher()
+homo = None
 
 class MultiCameraStreamer:
     def __init__(self, streaming_sources=[], apply_stitching=True, cam_parameters=[]):
@@ -58,15 +60,16 @@ class MultiCameraStreamer:
         self._stitcher = cv2.Stitcher_create()
 
         self._combinations = {}
+        self._homo = None
 
         self._transformation_matrices = []
-        self._transformation_matrices.append(np.array([[ 4.94666047e+00,  2.41170928e-01, -2.38876244e+03],
-                                                       [ 1.03375334e+00,  4.54913411e+00, -9.31887226e+02],
-                                                       [ 5.57908324e-03,  8.48213933e-04,  1.00000000e+00]]))
+        self._transformation_matrices.append(np.array([[ 3.89013372e+00,  1.05807681e-01, -1.83284612e+03],
+                                                       [ 1.15045643e+00,  3.23342579e+00, -3.48577247e+02],
+                                                       [ 4.56903845e-03, -5.51291189e-04,  1.00000000e+00]]))
 
-        self._transformation_matrices.append(np.array([[ 2.48237478e+00,  8.67674767e-02, -1.06397831e+03],
-                                                       [ 4.26131976e-01,  1.98877399e+00, -1.58140696e+02],
-                                                       [ 2.49989557e-03, -3.50564156e-04,  1.00000000e+00]]))
+        self._transformation_matrices.append(np.array([[ 3.23193666e+00,  2.78768619e-01, -1.37202381e+03],
+                                                       [ 6.63396265e-01,  2.81667934e+00, -3.40982378e+02],
+                                                       [ 3.46888996e-03,  1.47209970e-04,  1.00000000e+00]]))
 
         self._transformations = []
         self._transformations.append(np.array([[0.96761879, -0.29169015, -135.20440722],
@@ -100,14 +103,28 @@ class MultiCameraStreamer:
                 try:
                     # self.do_stitching(frames)
 
-                    stitched12 = combine_images(frames[2], frames[1], np.linalg.inv(self._transformation_matrices[1]))
-                    stitched01 = combine_images(stitched12, frames[0], np.linalg.inv(self._transformation_matrices[0]))
+                    flipped_left = cv2.flip(frames[0], 1)
+                    left = cv2.flip(frames[1], 1)
 
-                    res = cv2.resize(stitched01, (1240, 480))
+                    right = flipped_left
+
+                    stitched01 = combine_images(right, left, np.linalg.inv(self._transformation_matrices[0]))
+                    stitched01 = cv2.flip(stitched01, 1)
+
+                    stitched12 = combine_images(frames[2], frames[1], np.linalg.inv(self._transformation_matrices[1]))
+                    # stitched01 = combine_images(stitched12, frames[0], np.linalg.inv(self._transformation_matrices[0]))
+
+                    stitched12 = stitched12[:stitched01.shape[0], :]
+
+                    first_cols = frames[1].shape[1]
+
+                    res = cv2.hconcat([stitched01[:, :(stitched01.shape[1] - first_cols//2)], stitched12[:, (first_cols//2):]])
+
+                    res = cv2.resize(res, (1920, 800))
 
                     #cv2.imshow("Merged01", stitched01)
-                    #cv2.imshow("Merged12", stitched12)
-                    cv2.imshow("Res", res)
+                    cv2.imshow("res", res)
+                    # cv2.imshow("Stitched12", stitched12)
 
                     '''stitched23 = combine_images(frames[3], frames[2], self._transformation_matrices[2])
                     stitched12 = combine_images(frames[2], frames[1], self._transformation_matrices[1])

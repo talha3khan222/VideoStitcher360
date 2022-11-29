@@ -13,7 +13,7 @@ class FeatureMatcher:
         self._bf_matcher = cv2.BFMatcher(cv2.NORM_HAMMING, crossCheck=True)
 
         self._matching_threshold = 0.5
-        self._minimum_matching_points = 3
+        self._minimum_matching_points = 5
 
     def get_sift_matching_points(self, image1, image2):
         kp1, desc1 = self._sift_features_extractor.extract_features(image1)
@@ -23,7 +23,6 @@ class FeatureMatcher:
             raw_matches = self._knn_matcher.knnMatch(desc1, desc2, k=2)
             # raw_matches = self._matcher.radiusMatch(desc1, desc2, 2)
 
-            imMatches = None
             # imMatches = cv2.drawMatches(image1, kp1, image2, kp2, raw_matches, None)
 
             good_matches = []
@@ -41,7 +40,7 @@ class FeatureMatcher:
             good_kps_1 = np.float32([kp1[m.queryIdx].pt for m in good_matches]).reshape(-1, 1, 2)
             good_kps_2 = np.float32([kp2[m.trainIdx].pt for m in good_matches]).reshape(-1, 1, 2)
 
-            return good_kps_1, good_kps_2, imMatches
+            return good_kps_1, good_kps_2
 
     def get_orb_matching_points(self, im1, im2, display_matches=False):
         cim1 = im1.copy()
@@ -76,13 +75,8 @@ class FeatureMatcher:
         points2 = []
 
         for i, match in enumerate(matches):
-            p2 = keypoints2[match.trainIdx].pt
-            angle = get_angle(list(keypoints1[match.queryIdx].pt), [p2[0] + 480, p2[1] + 480])
-
-            if abs(angle) < 60:
-                print(angle)
-                points1.append(keypoints1[match.queryIdx].pt)
-                points2.append(keypoints2[match.trainIdx].pt)
+            points1.append(keypoints1[match.queryIdx].pt)
+            points2.append(keypoints2[match.trainIdx].pt)
 
         points1 = np.array(points1, dtype=np.float32)
         points2 = np.array(points2, dtype=np.float32)

@@ -113,7 +113,7 @@ from Utils.generals import registration, trim
 
 def stitch(left, right):
     fm = FeatureMatcher()
-    src_pts, dst_pts, imMatches = fm.get_sift_matching_points(left, right)
+    src_pts, dst_pts = fm.get_sift_matching_points(left, right)
 
     if src_pts is None:
         return
@@ -141,7 +141,7 @@ def stitch(left, right):
     else:
         print("Not enough matches found", len(src_pts), MIN_MATCH_COUNT)
 
-    dst = cv2.warpPerspective(left, M, (right.shape[1] + left.shape[1], right.shape[0]))
+    dst = cv2.warpPerspective(left, M, (right.shape[1] + left.shape[1]*3, right.shape[0]*2))
     print(M)
     cv2.imshow('dst', dst)
     # cv2.waitKey()
@@ -155,12 +155,24 @@ def stitch(left, right):
     return M
 
 
+import sys
+sys.setrecursionlimit(10000)
+
 left = cv2.imread("images/1.png")
 right = cv2.imread("images/0.png")
 
 #left = left[:, :450]
 #right = right[:, 20:450]
 
-stitch(left, right)
+# stitch(left, right)
+
+st = cv2.Stitcher.create()
+ret, res = st.stitch([left, right])
+
+if ret and res is not None:
+    cv2.imshow("res", res)
+    cv2.waitKey()
+else:
+    print("Could Not Stitch")
 
 cv2.destroyAllWindows()

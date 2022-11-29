@@ -81,13 +81,13 @@ class Tailor:
         return final
 
     def display_matching_points(self, image1, image2):
-        p1, p2, imMatches = self._feature_matcher.get_orb_matching_points(image1, image2)
-        return imMatches
+        p1, p2 = self._feature_matcher.get_orb_matching_points(image1, image2)
+        return None
 
 
 t = Tailor()
-left = cv2.imread("../images/0.png")
-right = cv2.imread("../images/1.png")
+left = cv2.imread("../images/1.png")
+right = cv2.imread("../images/2.png")
 
 left = cv2.resize(left, (right.shape[1], right.shape[0]))
 
